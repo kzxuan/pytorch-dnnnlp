@@ -519,12 +519,13 @@ class RNN_classify(RNN):
         }
 
         best_iter, best_ty, best_pred, best_result = self.run(now_data_dict, verbose)
+        one_hot = True if best_ty.ndim > 1 else False
         if verbose > 1:
             _, ana = predict_analysis(
-                best_ty, best_pred, one_hot=True, class_name=self.class_name, simple=False)
+                best_ty, best_pred, one_hot=one_hot, class_name=self.class_name, simple=False)
             print("- Best test result: Iteration {}\n".format(best_iter), ana)
         elif verbose > 0:
-            true_pred, result = predict_analysis(best_ty, best_pred, one_hot=True, simple=True)
+            true_pred, result = predict_analysis(best_ty, best_pred, one_hot=one_hot, simple=True)
             print("- Best result: It {:2d}, {}, Correct {}".format(
                 best_iter, ef.format_dict(result), true_pred))
         return best_result

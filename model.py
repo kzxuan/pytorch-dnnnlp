@@ -10,12 +10,12 @@ import torch
 import argparse
 import numpy as np
 import torch.nn as nn
+import easy_function as ef
 import torch.utils.data as Data
 import torch.nn.functional as F
-import utils.easy_function as ef
 from copy import deepcopy
-from utils.step_print import table_print, percent
-from utils.predict_analysis import predict_analysis
+from step_print import table_print, percent
+from predict_analysis import predict_analysis
 
 
 def default_args(data_dict=None):
@@ -424,7 +424,7 @@ class RNN_classify(RNN):
         else:
             self.width = width
 
-    def run_train(self, train_loader):
+    def _run_train(self, train_loader):
         """
         Run train part
         * train_loader [DataLoader]: train data generator
@@ -444,7 +444,7 @@ class RNN_classify(RNN):
         losses = losses / (step + 1)
         return losses
 
-    def run_test(self, test_loader):
+    def _run_test(self, test_loader):
         """
         Run test part
         * test_loader [DataLoader]: test data generator
@@ -462,7 +462,7 @@ class RNN_classify(RNN):
             tys = torch.cat((tys, ty.cpu()))
         return preds.data.numpy(), tys.data.numpy()
 
-    def run(self, now_data_dict, verbose):
+    def _run(self, now_data_dict, verbose):
         """
         Model run part
         * now_data_dict [dict]: data dict with torch.tensor in it
@@ -486,8 +486,8 @@ class RNN_classify(RNN):
         if verbose == 1:
             per = percent("* Run model", self.iter_times)
         for it in range(1, self.iter_times + 1):
-            loss = self.run_train(train_loader)
-            pred, ty = self.run_test(test_loader)
+            loss = self._run_train(train_loader)
+            pred, ty = self._run_test(test_loader)
             true_pred, result = predict_analysis(ty, pred, one_hot=True, simple=True)
             if it % self.display_step == 0 and verbose > 1:
                 ptable.print_row([it, loss, result['P'], result['R'], result['F'],
@@ -518,7 +518,7 @@ class RNN_classify(RNN):
             'tlen': [torch.IntTensor(ele) for ele in self.data_dict['tlen']]
         }
 
-        best_iter, best_ty, best_pred, best_result = self.run(now_data_dict, verbose)
+        best_iter, best_ty, best_pred, best_result = self._run(now_data_dict, verbose)
         one_hot = True if best_ty.ndim > 1 else False
         if verbose > 1:
             _, ana = predict_analysis(
@@ -564,7 +564,7 @@ class RNN_classify(RNN):
                 state = np.argmax(now_data_dict['ty'].numpy(), axis=1).tolist()
                 state = [state.count(i) for i in range(self.n_class)]
                 print("* Fold {}: {}".format(count, state))
-            best_iter, best_ty, best_pred, best_result = self.run(now_data_dict, verbose)
+            best_iter, best_ty, best_pred, best_result = self._run(now_data_dict, verbose)
 
             if verbose > 0:
                 true_pred, result = predict_analysis(best_ty, best_pred, one_hot=False, simple=True)
@@ -612,7 +612,7 @@ class RNN_sequence(RNN_classify):
         else:
             self.width = width
 
-    def run(self, now_data_dict, verbose):
+    def _run(self, now_data_dict, verbose):
         """
         Model run part
         * now_data_dict [dict]: data dict with torch.tensor in it
@@ -636,8 +636,8 @@ class RNN_sequence(RNN_classify):
         if verbose == 1:
             per = percent("* Run model", self.iter_times)
         for it in range(1, self.iter_times + 1):
-            loss = self.run_train(train_loader)
-            pred, ty = self.run_test(test_loader)
+            loss = self._run_train(train_loader)
+            pred, ty = self._run_test(test_loader)
 
             vote_pred = self.vote_sequence(pred, self.data_dict['tid'])
             vote_ty = self.vote_sequence(ty, self.data_dict['tid'])

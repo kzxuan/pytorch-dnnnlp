@@ -1,5 +1,7 @@
 ## PyTorch简单RNN模型
 
+Version 1.7 by KzXuan
+
 **包含了PyTorch实现的简单RNN模型（LSTM和GRU）用于NLP领域的分类及序列标注任务。**
 
 相比TensorFlow，PyTorch拥有更为原生的Python语言写法，直接支持动态建图。

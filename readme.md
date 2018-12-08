@@ -90,7 +90,7 @@
   ```python
   from model import default_args, RNN_classify
   
-  emb_mat = np.array([])
+  emb_mat = np.array([...])
   data_dict = {...}
   args = default_args(data_dict)
   class_name = ['support', 'deny', 'query', 'comment']
@@ -103,7 +103,7 @@
   ```python
   from model import default_args, RNN_sequence
   
-  emb_mat = np.array([])
+  emb_mat = np.array([...])
   data_dict = {...}
   args = default_args(data_dict)
   class_name = ['support', 'deny', 'query', 'comment']
@@ -122,7 +122,7 @@
 
   ```python
   nn = RNN_classify(data_dict, emb_mat, args, class_name=class_name)
-  params_search = {"batch_size": [64, 128], "l2_reg": [1e-3, 1e-5]}
+  params_search = {"l2_reg": [1e-3, 1e-5], "batch_size": [64, 128]}
   nn.grid_search(nn.train_test, params_search=params_search)
   ```
 

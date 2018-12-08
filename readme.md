@@ -15,12 +15,12 @@
 
 超参数说明：
 
-* cuda_enable [bool]	是否使用GPU加速
-* GRU_enable [bool]	使用GRU或LSTM
-* bi_direction [bool]	双向LSTM/GRU
-* n_layer [int]			每个层级的LSTM/GRU层数
-* use_attention [bool]	是否使用注意力机制（默认在每一级LSTM/GRU上添加）
-* emb_type [str]		使用None/'const'/'variable'/'random'表示Embedding模式
+* cuda_enable [bool]  是否使用GPU加速
+* GRU_enable [bool]  使用GRU或LSTM
+* bi_direction [bool]  双向LSTM/GRU
+* n_layer [int]  每个层级的LSTM/GRU层数
+* use_attention [bool]  是否使用注意力机制（默认在每一级LSTM/GRU上添加）
+* emb_type [str]  使用None/'const'/'variable'/'random'表示Embedding模式
 * emb_dim [int]: embedding dimension
 
 ​        \* n_class [int]: number of object classify classes

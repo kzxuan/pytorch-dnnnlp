@@ -96,7 +96,7 @@ class RNN(object):
         for name, value in args.items():
             setattr(self, name, value)
 
-    def create_date_loader(self, *data):
+    def create_data_loader(self, *data):
         """
         Create data loader for pytorch
         * data [tensor]: several tensors with the same shape[0]
@@ -143,7 +143,7 @@ class RNN(object):
     def vote_sequence(predict, ids):
         """
         Vote for predict/label if the sequence is repetitive
-        * predict [np.array]: (sample_num * max_seq_len * n_class)
+        * predict [np.array]: (sample_num, max_seq_len, n_class)
         * ids [list]: ids of each sequence
         - vote_pred [np.array]: predict array
         """
@@ -473,10 +473,10 @@ class RNN_classify(RNN):
         - best_pred [np.array]: the prediction of the best result
         - best_result [dict]: the best result value including 'P'/'R'/'F'/'Acc'
         """
-        train_loader = self.create_date_loader(
+        train_loader = self.create_data_loader(
             now_data_dict['x'], now_data_dict['y'], *now_data_dict['len']
         )
-        test_loader = self.create_date_loader(
+        test_loader = self.create_data_loader(
             now_data_dict['tx'], now_data_dict['ty'], *now_data_dict['tlen']
         )
 
@@ -623,10 +623,10 @@ class RNN_sequence(RNN_classify):
         - best_pred [np.array]: the prediction of the best result
         - best_result [dict]: the best result value including 'P'/'R'/'F'/'Acc'
         """
-        train_loader = self.create_date_loader(
+        train_loader = self.create_data_loader(
             now_data_dict['x'], now_data_dict['y'], *now_data_dict['len']
         )
-        test_loader = self.create_date_loader(
+        test_loader = self.create_data_loader(
             now_data_dict['tx'], now_data_dict['ty'], *now_data_dict['tlen']
         )
 

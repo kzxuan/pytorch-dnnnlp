@@ -65,7 +65,7 @@ Version 1.7 by KzXuan
 
   封装好的LSTM/GRU模型，可以独立运行，支持单/双向及注意力机制。
 
-  调用时可选择输出模式"all"/"last"/“att"来分别得到最后一层的全部隐层输出，或最后一层的最后一个时间步的输出，或Attention后的输出。
+  调用时可选择输出模式"all"/"last"/"att"来分别得到最后一层的全部隐层输出，或最后一层的最后一个时间步的输出，或Attention后的输出。
 
 * RNN_model(emb_matrix, args, model='classify')：
 

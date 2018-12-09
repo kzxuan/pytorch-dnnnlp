@@ -10,12 +10,12 @@ import torch
 import argparse
 import numpy as np
 import torch.nn as nn
-import easy_function as ef
 import torch.utils.data as Data
 import torch.nn.functional as F
+import utils.easy_function as ef
 from copy import deepcopy
-from step_print import table_print, percent
-from predict_analysis import predict_analysis
+from utils.step_print import table_print, percent
+from utils.predict_analysis import predict_analysis
 
 
 def default_args(data_dict=None):

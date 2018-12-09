@@ -142,3 +142,4 @@ Version 1.7 by KzXuan
 from deep_neural.pytorch import default_args, RNN_classify, RNN_sequence
 ```
 
+所有涉及到的工具包（包括word_vector/predict_analysis/step_print/…）在服务器上也可以直接import。

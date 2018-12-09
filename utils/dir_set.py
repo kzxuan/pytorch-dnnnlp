@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Initialize all the dirs
-Last update: KzXuan, 2018.10.13
+Last update: KzXuan, 2018.12.09
 """
 
 
@@ -13,7 +13,6 @@ class DIR(object):
 
     W2V = "/home/kzxuan/word2vec-model/"
     W2V_GOOGLE = W2V + "/Google_SemEval_w2v.txt"
-
 
 
 sep = '/'

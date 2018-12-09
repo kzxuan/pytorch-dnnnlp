@@ -6,7 +6,7 @@ Version 1.7 by KzXuan
 
 相比TensorFlow的静态图模型，PyTorch拥有更为原生的Python语言写法，默认支持动态建图。
 
-在同数据集同模型同参数的设置下，第一份小测试数据进行训练+测试用时PyTorch 60s VS TensorFlow 86s；第二份大测试数据进行十折交叉用时PyTorch 6m26s VS TensorFlow 14m34s，两者的测试准确率结果几乎完全相同，同时PyTorch所占用的GPU资源会更小。
+在同数据集同模型同参数的设置下，第一份小数据进行训练+测试用时PyTorch 60s VS TensorFlow 86s；第二份大数据进行十折交叉用时PyTorch 6m26s VS TensorFlow 14m34s，两者的测试准确率结果几乎完全相同，同时PyTorch所占用的GPU资源会更小。
 
 
 

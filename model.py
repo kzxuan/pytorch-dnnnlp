@@ -4,7 +4,7 @@
 Deep neural networks model written by PyTorch
 Ubuntu 16.04 & PyTorch 1.0
 Last update: KzXuan, 2018.12.09
-Version 1.7.1
+Version 1.7.2
 """
 import torch
 import argparse
@@ -23,7 +23,6 @@ def default_args(data_dict=None):
     parser.add_argument("--cuda_enable", default=True, type=bool, help="use GPU to speed up")
     parser.add_argument("--GRU_enable", default=True, type=bool, help="use LSTM or GRU")
     parser.add_argument("--bi_direction", default=True, type=bool, help="bi direction choice")
-    parser.add_argument("--n_hierarchy", default=1, type=int, help="RNN hierarchy number")
     parser.add_argument("--n_layer", default=1, type=int, help="hidden layer number")
     parser.add_argument("--use_attention", default=True, type=bool, help="use attention or not")
 
@@ -31,9 +30,11 @@ def default_args(data_dict=None):
     if data_dict is not None:
         parser.add_argument("--emb_dim", default=data_dict['x'].shape[-1], type=int, help="embedding dimension")
         parser.add_argument("--n_class", default=data_dict['y'].shape[-1], type=int, help="classify classes number")
+        parser.add_argument("--n_hierarchy", default=len(data_dict['len']), type=int, help="RNN hierarchy number")
     else:
         parser.add_argument("--emb_dim", default=300, type=int, help="embedding dimension")
         parser.add_argument("--n_class", default=2, type=int, help="classify classes number")
+        parser.add_argument("--n_hierarchy", default=1, type=int, help="RNN hierarchy number")
 
     parser.add_argument("--n_hidden", default=50, type=int, help="hidden layer nodes")
     parser.add_argument("--learning_rate", default=0.01, type=float, help="learning rate")
@@ -54,12 +55,12 @@ class RNN(object):
         * cuda_enable [bool]: use GPU to speed up
         * GRU_enable [bool]: use LSTM or GRU model
         * bi_direction [bool]: use bi-direction model or not
-        * n_hierarchy [int]: number of RNN hierarchies
         * n_layer [int]: number of classify layers
         * use_attention [bool]: use attention or not
         * emb_type [str]: use None/'const'/'variable'/'random'
         * emb_dim [int]: embedding dimension
         * n_class [int]: number of object classify classes
+        * n_hierarchy [int]: number of RNN hierarchies
         * n_hidden [int]: number of hidden layer nodes
         * learning_rate [float]: learning rate
         * l2_reg [float]: L2 regularization parameter
@@ -72,12 +73,12 @@ class RNN(object):
         self.cuda_enable = args.cuda_enable
         self.GRU_enable = args.GRU_enable
         self.bi_direction = args.bi_direction
-        self.n_hierarchy = args.n_hierarchy
         self.n_layer = args.n_layer
         self.use_attention = args.use_attention
         self.emb_type = args.emb_type
         self.emb_dim = args.emb_dim
         self.n_class = args.n_class
+        self.n_hierarchy = args.n_hierarchy
         self.n_hidden = args.n_hidden
         self.learning_rate = args.learning_rate
         self.l2_reg = args.l2_reg

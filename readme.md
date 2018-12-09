@@ -31,17 +31,17 @@ Version 1.7 by KzXuan
 -  iter_times [int]		迭代次数
 -  display_step [int]		迭代过程中显示输出的间隔迭代次数
 -  drop_prob [float]		Dropout比例
--  score_standard [str]	使用'P'/'R'/'F'/'Acc’设定模型评判标准
+-  score_standard [str]	使用'P'/'R'/'F'/'Acc'设定模型评判标准
 
 数据要求：
 
 * 构建data_dict并送入模型，data_dict为数据字典，包含：
-  * ‘x’ [np.array]		训练集输入数据
-  * ‘y’ [np.array]		训练集标签
-  * ‘len’ [list]			训练集序列长度，列表中元素皆为np.array，从前往后表示模型从下到上每一个序列层级的序列长度
-  * ‘tx’ [np.array]		测试集输入数据，可选
-  * ‘ty’ [np.array]		测试集标签，可选
-  * ‘tlen’ [list]		测试集序列长度，可选
+  * 'x' [np.array]		训练集输入数据
+  * 'y' [np.array]		训练集标签
+  * 'len' [list]		训练集序列长度，列表中元素皆为np.array，从前往后表示模型从下到上每一个序列层级的序列长度
+  * 'tx' [np.array]	测试集输入数据，可选
+  * 'ty' [np.array]	测试集标签，可选
+  * 'tlen' [list]		测试集序列长度，可选
 
 类及函数说明：
 
@@ -116,6 +116,7 @@ Version 1.7 by KzXuan
 * 多次运行同一模型并取Accuracy的平均
 
   ```python
+  args.score_standard = 'Acc'
   nn = RNN_classify(data_dict, emb_mat, args, class_name=class_name)
   nn.average_several_run(nn.train_test, times=5, verbose=2)
   ```
@@ -123,6 +124,7 @@ Version 1.7 by KzXuan
 * 网格搜索调参
 
   ```python
+  args.score_standard = 'F'
   nn = RNN_classify(data_dict, emb_mat, args, class_name=class_name)
   params_search = {"l2_reg": [1e-3, 1e-5], "batch_size": [64, 128]}
   nn.grid_search(nn.train_test, params_search=params_search)

@@ -10,8 +10,6 @@ Version 1.7 by KzXuan
 
 
 
-####模型内容说明
-
 环境：
 
 * Python 3.6/3.7

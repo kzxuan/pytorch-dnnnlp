@@ -31,7 +31,6 @@ ef.print_shape(data_dict)
 
 args = default_args(data_dict)
 args.GRU_enable = True
-args.n_hierarchy = 2
 args.use_attention = True
 args.emb_type = 'const'
 args.emb_dim = w2v.vector_size

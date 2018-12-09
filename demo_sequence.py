@@ -33,7 +33,6 @@ ef.print_shape(data_dict)
 
 args = default_args(data_dict)
 args.GRU_enable = True
-args.n_hierarchy = 2
 args.use_attention = True
 args.emb_type = 'const'
 args.emb_dim = w2v.vector_size
@@ -41,7 +40,7 @@ args.n_hidden = 50
 args.learning_rate = 0.01
 args.l2_reg = 0.0
 args.batch_size = 64
-args.iter_times = 30
+args.iter_times = 20
 args.display_step = 1
 args.drop_porb = 0.1
 

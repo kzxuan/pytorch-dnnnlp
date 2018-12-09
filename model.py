@@ -565,9 +565,9 @@ class RNN_classify(RNN):
                 state = [state.count(i) for i in range(self.n_class)]
                 print("* Fold {}: {}".format(count, state))
             best_iter, best_ty, best_pred, best_result = self._run(now_data_dict, verbose)
-
+            one_hot = True if best_ty.ndim > 1 else False
             if verbose > 0:
-                true_pred, result = predict_analysis(best_ty, best_pred, one_hot=False, simple=True)
+                true_pred, result = predict_analysis(best_ty, best_pred, one_hot=one_hot, simple=True)
                 print("- Best result: It {:2d}, {}, Correct {}".format(
                     best_iter, ef.format_dict(result), true_pred))
                 print("-" * 88)

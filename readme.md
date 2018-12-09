@@ -130,3 +130,11 @@ Version 1.7 by KzXuan
   nn.grid_search(nn.train_test, params_search=params_search)
   ```
 
+
+
+#### 在GPU服务器上的使用
+
+```python
+from deep_neural.pytorch import default_args, RNN_classify, RNN_sequence
+```
+

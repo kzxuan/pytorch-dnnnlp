@@ -4,9 +4,9 @@ Version 1.7 by KzXuan
 
 **包含了PyTorch实现的简单RNN模型（LSTM和GRU）用于NLP领域的分类及序列标注任务。**
 
-相比TensorFlow，PyTorch拥有更为原生的Python语言写法，直接支持动态建图。
+相比TensorFlow的静态图模型，PyTorch拥有更为原生的Python语言写法，默认支持动态建图。
 
-
+在同数据集同模型同参数的设置下，第一份小测试数据进行训练+测试用时PyTorch 60s VS TensorFlow 86s；第二份大测试数据进行十折交叉用时PyTorch 6m26s VS TensorFlow 14m34s，两者的测试准确率结果几乎完全相同，同时PyTorch所占用的GPU资源会更小。
 
 环境：
 
@@ -20,7 +20,7 @@ Version 1.7 by KzXuan
 -  bi_direction [bool]	双向LSTM/GRU
 -  n_hierarchy [int]		RNN模型的层次数
 -  n_layer [int]			每个层次的LSTM/GRU层数
--  use_attention [bool]	是否使用注意力机制（默认在每一级LSTM/GRU上添加）
+-  use_attention [bool]	是否使用注意力机制（默认在每一层次的LSTM/GRU上添加）
 -  emb_type [str]		使用None/'const'/'variable'/'random'表示Embedding模式
 -  emb_dim [int]		Embedding维度（输入为特征时表示特征的维度）
 -  n_class [int]			分类的目标类数
@@ -35,7 +35,7 @@ Version 1.7 by KzXuan
 
 数据要求：
 
-* 构建data_dict并送入模型，data_dict为数据字典，包含：
+* **构建data_dict并送入模型，data_dict为数据字典**，包含：
   * 'x' [np.array]		训练集输入数据
   * 'y' [np.array]		训练集标签
   * 'len' [list]		训练集序列长度，列表中元素皆为np.array，从前往后表示模型从下到上每一个序列层级的序列长度
@@ -69,7 +69,7 @@ Version 1.7 by KzXuan
 
 * RNN_classify(data_dict, emb_matrix=None, args=None, class_name=None, col=None, width=None)：
 
-  RNN分类模型的入口，使用RNN分类的导入类。
+  **RNN分类模型的入口，使用RNN分类的导入类。**
 
   * train_test(verbose=2)：训练-测试数据的调用函数
   * train_itself(verbose=2)：单一训练数据并使用本身进行测试的调用函数
@@ -79,7 +79,7 @@ Version 1.7 by KzXuan
 
 * RNN_sequence(data_dict, emb_matrix=None, args=None, class_name=None, col=None, width=None)：
 
-  RNN序列标注模型的入口，使用RNN序列标注的导入类。
+  **RNN序列标注模型的入口，使用RNN序列标注的导入类。**
 
   可调用函数同RNN_classify。
 

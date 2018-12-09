@@ -3,7 +3,7 @@
 """
 Deep neural networks model written by PyTorch
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2018.12.08
+Last update: KzXuan, 2018.12.09
 Version 1.7.1
 """
 import torch

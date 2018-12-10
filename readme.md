@@ -122,7 +122,7 @@ Version 1.7 by KzXuan
   ```python
   args.score_standard = 'Acc'
   nn = RNN_classify(data_dict, emb_mat, args, class_name=class_name)
-  nn.average_several_run(nn.train_test, times=5, verbose=2)
+  nn.average_several_run(nn.cross_validation, times=5, fold=5, verbose=2)
   ```
 
 * 网格搜索调参

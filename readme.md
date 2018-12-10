@@ -81,7 +81,7 @@ Version 1.7 by KzXuan
 
   参数class_name, col, width, verbose皆用以控制输出的显示内容、排版和输出内容等级。
 
-* RNN_sequence(data_dict, emb_matrix=None, args=None, class_name=None, col=None, width=None)：
+* RNN_sequence(data_dict, emb_matrix=None, args=None, vote=False, class_name=None, col=None, width=None)：
 
   **RNN序列标注模型的入口，使用RNN序列标注的导入类。**
 

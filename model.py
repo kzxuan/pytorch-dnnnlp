@@ -3,8 +3,8 @@
 """
 Deep neural networks model written by PyTorch
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2018.12.09
-Version 1.7.2
+Last update: KzXuan, 2018.12.10
+Version 1.7.3
 """
 import torch
 import argparse
@@ -160,17 +160,18 @@ class RNN(object):
         vote_pred = np.array([id_predict[id] for id in id_sort])
         return vote_pred
 
-    def average_several_run(self, run, times=5, verbose=1):
+    def average_several_run(self, run, times=5, **run_args):
         """
         Get average result after several running
+        * run [function]: model run function which returns a result dict including 'P'/'R'/'F'/'Acc'
         * times [int]: run several times for average
-        * verbose [int]: visual level including 0/1/2
+        * run_args [param]: some parameters for run function including 'fold'/'verbose'
         """
         results = {'P': [], 'R': [], 'F': [], 'Acc': []}
 
         for i in range(times):
             print("* Run round: {}".format(i + 1))
-            result = run(verbose=verbose)
+            result = run(**run_args)
             for key, score in result.items():
                 results[key].append(score)
             print("*" * 88)
@@ -178,11 +179,11 @@ class RNN(object):
             results[key] = ef.list_mean(results[key])
         print("* Average score after {} rounds: {}".format(times, ef.format_dict(results)))
 
-    def grid_search(self, run, params_search=None, verbose=1):
+    def grid_search(self, run, params_search=None, **run_args):
         """
         * run [function]: model run function which returns a result dict including 'P'/'R'/'F'/'Acc'
         * params_search [dict]: the argument value need to be tried
-        * verbose [int]: visual level including 0/1/2
+        * run_args [param]: some parameters for run function including 'fold'/'verbose'
         """
         from sklearn.model_selection import ParameterGrid
 
@@ -192,7 +193,7 @@ class RNN(object):
         for params in params_search:
             self.attributes_from_dict(params)
             print("* Now params: {}".format(str(params)))
-            result = run(verbose=verbose)
+            result = run(**run_args)
             score = result[self.score_standard]
             results[str(params)] = score
             if score > max_score:
@@ -335,7 +336,7 @@ class RNN_model(nn.Module, RNN):
         * args [dict]: all model arguments
         * model [str]: use 'classify'/'sequence' to get the result
         """
-        super(RNN_model, self).__init__()
+        nn.Module.__init__(self)
         RNN.__init__(self, args)
 
         self.model = model

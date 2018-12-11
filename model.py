@@ -4,18 +4,18 @@
 Deep neural networks model written by PyTorch
 Ubuntu 16.04 & PyTorch 1.0
 Last update: KzXuan, 2018.12.10
-Version 1.7.3
+Version 0.9.0
 """
 import torch
 import argparse
 import numpy as np
 import torch.nn as nn
+import easy_function as ef
 import torch.utils.data as Data
 import torch.nn.functional as F
-import utils.easy_function as ef
 from copy import deepcopy
-from utils.step_print import table_print, percent
-from utils.predict_analysis import predict_analysis
+from step_print import table_print, percent
+from predict_analysis import predict_analysis
 
 
 def default_args(data_dict=None):
@@ -48,7 +48,7 @@ def default_args(data_dict=None):
     return args
 
 
-class RNN(object):
+class base(object):
     def __init__(self, args):
         """
         Initilize the model data
@@ -145,7 +145,7 @@ class RNN(object):
         Vote for predict/label if the sequence is repetitive
         * predict [np.array]: (sample_num, max_seq_len, n_class)
         * ids [list]: ids of each sequence
-        - vote_pred [np.array]: predict array
+        - get_pred [np.array]: predict array
         """
         predict = np.argmax(predict, axis=2)
         id_sort = [series[-1] for series in ids]
@@ -157,8 +157,8 @@ class RNN(object):
         for id in id_predict.keys():
             id_predict[id] = np.argmax(np.bincount(id_predict[id]))
 
-        vote_pred = np.array([id_predict[id] for id in id_sort])
-        return vote_pred
+        get_pred = np.array([id_predict[id] for id in id_sort])
+        return get_pred
 
     def average_several_run(self, run, times=5, **run_args):
         """
@@ -167,17 +167,19 @@ class RNN(object):
         * times [int]: run several times for average
         * run_args [param]: some parameters for run function including 'fold'/'verbose'
         """
-        results = {'P': [], 'R': [], 'F': [], 'Acc': []}
+        results = {}
 
         for i in range(times):
             print("* Run round: {}".format(i + 1))
             result = run(**run_args)
             for key, score in result.items():
+                results.setdefault(key, [])
                 results[key].append(score)
             print("*" * 88)
         for key in results:
             results[key] = ef.list_mean(results[key])
-        print("* Average score after {} rounds: {}".format(times, ef.format_dict(results)))
+        print("* Average score after {} rounds: {} {}".format(
+              times, self.score_standard, results[self.score_standard]))
 
     def grid_search(self, run, params_search=None, **run_args):
         """
@@ -328,18 +330,18 @@ class LSTM_model(nn.Module):
             raise ValueError("! Wrong value of parameter 'out-type', accepts 'all'/'last' only.")
 
 
-class RNN_model(nn.Module, RNN):
-    def __init__(self, emb_matrix, args, model='classify'):
+class RNN_model(nn.Module, base):
+    def __init__(self, emb_matrix, args, mode='classify'):
         """
         Initilize the model data and layer
         * emb_matrix [np.array]: word embedding matrix
         * args [dict]: all model arguments
-        * model [str]: use 'classify'/'sequence' to get the result
+        * mode [str]: use 'classify'/'sequence' to get the result
         """
         nn.Module.__init__(self)
-        RNN.__init__(self, args)
+        base.__init__(self, args)
 
-        self.model = model
+        self.mode = mode
         self.embedding_layer(emb_matrix)
         self.bi_direction_num = 2 if self.bi_direction else 1
 
@@ -364,12 +366,13 @@ class RNN_model(nn.Module, RNN):
         """
         if self.emb_type is not None:
             inputs = self.emb_mat(inputs.long())  # batch_size * max_seq_len * emb_dim
-        outputs = self.drop_out(inputs)
-        now_batch_size, *max_seq_len, emb_dim = outputs.size()
+
+        now_batch_size, *max_seq_len, emb_dim = inputs.size()
         max_seq_len = max_seq_len[::-1]
         if len(max_seq_len) != self.n_hierarchy:
             raise ValueError("! Parameter 'seq_len' does not correspond to another parameter 'n_hierarchy'.")
 
+        outputs = self.drop_out(inputs)
         for hi in range(self.n_hierarchy - 1):
             outputs = torch.reshape(outputs, [-1, max_seq_len[hi], outputs.size(-1)])
             now_seq_len = torch.reshape(seq_len[hi], [-1])
@@ -381,35 +384,32 @@ class RNN_model(nn.Module, RNN):
         hi = self.n_hierarchy - 1
         outputs = torch.reshape(outputs, [-1, max_seq_len[hi], outputs.size(-1)])
         now_seq_len = torch.reshape(seq_len[hi], [-1])
-        if self.model == 'classify':
+        if self.mode == 'classify':
             if self.use_attention:
                 outputs = self.rnn[hi](outputs, now_seq_len, out_type='att')
             else:
-                outputs = self.rnn[hi](outputs, now_seq_len, out_type='last')
-        elif self.model == 'sequence':
-            outputs = self.rnn[hi](outputs, now_seq_len, out_type='all')
+                outputs = self.rnn[hi](outputs, now_seq_len, out_type='last')  # batch_size * (2)n_hidden
+        elif self.mode == 'sequence':
+            outputs = self.rnn[hi](outputs, now_seq_len, out_type='all')  # batch_size * max_seq_len * (2)n_hidden
 
         pred = self.predict(outputs)
         return pred
 
 
-class RNN_classify(RNN):
-    def __init__(self, data_dict, emb_matrix=None, args=None,
-                 class_name=None, col=None, width=None):
+class RNN_classify(base):
+    def __init__(self, data_dict, emb_matrix=None, args=None, class_name=None):
         """
         Initilize the LSTM classify model
         * data_dict [dict]: use key like 'x'/'vx'/'ty'/'lq' to store the data
         * emb_matrix [np.array]: word embedding matrix (need emb_type!=None)
         * args [dict]: all model arguments
         * class_name [list]: name of each class
-        * col [list]: name of each column for output
-        * form [list]: width of each column for output
         """
         self.data_dict = data_dict
         args = default_args(data_dict) if args is None else args
-        RNN.__init__(self, args)
+        base.__init__(self, args)
 
-        self.model = RNN_model(emb_matrix, args, model='classify')
+        self.model = RNN_model(emb_matrix, args, mode='classify')
         if self.cuda_enable:
             self.model.cuda()
         self.model_init = deepcopy(self.model.state_dict())
@@ -417,14 +417,15 @@ class RNN_classify(RNN):
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=self.learning_rate, weight_decay=self.l2_reg
         )
-
         self.class_name = class_name
-        self.col = ["Step", "Loss", "P", "R", "F", "Acc", "Correct"] if col is None else col
-        if width is None:
-            data_scale = (len(str(self.data_dict['x'].shape[0])) + 1) * self.n_class + 1
-            self.width = [4, 6, 6, 6, 6, 6, data_scale]
-        else:
-            self.width = width
+        self._init_display()
+
+    def _init_display(self):
+        mid = self.score_standard[:-2] if self.score_standard != 'Acc' else 'Ma'
+        self.col = ["Step", "Loss", "%s-P" % mid, "%s-R" % mid, "%s-F" % mid, "Acc", "Correct"]
+        max_width = np.reshape(self.data_dict['y'], [-1, self.n_class]).shape[0]
+        data_scale = (len(str(max_width)) + 1) * self.n_class + 1
+        self.width = [4, 6, 6, 6, 6, 6, data_scale]
 
     def _run_train(self, train_loader):
         """
@@ -490,10 +491,9 @@ class RNN_classify(RNN):
         for it in range(1, self.iter_times + 1):
             loss = self._run_train(train_loader)
             pred, ty = self._run_test(test_loader)
-            true_pred, result = predict_analysis(ty, pred, one_hot=True, simple=True)
+            result = predict_analysis(ty, pred, one_hot=True, simple=True)
             if it % self.display_step == 0 and verbose > 1:
-                ptable.print_row([it, loss, result['P'], result['R'], result['F'],
-                                  result['Acc'], str(true_pred)])
+                ptable.print_row(dict(result, **{"Step": it, "Loss": loss}))
             if verbose == 1:
                 per.change()
 
@@ -523,13 +523,13 @@ class RNN_classify(RNN):
         best_iter, best_ty, best_pred, best_result = self._run(now_data_dict, verbose)
         one_hot = True if best_ty.ndim > 1 else False
         if verbose > 1:
-            _, ana = predict_analysis(
-                best_ty, best_pred, one_hot=one_hot, class_name=self.class_name, simple=False)
+            ana = predict_analysis(
+                best_ty, best_pred, one_hot=one_hot, class_name=self.class_name, simple=False
+            )
             print("- Best test result: Iteration {}\n".format(best_iter), ana)
         elif verbose > 0:
-            true_pred, result = predict_analysis(best_ty, best_pred, one_hot=one_hot, simple=True)
-            print("- Best result: It {:2d}, {}, Correct {}".format(
-                best_iter, ef.format_dict(result), true_pred))
+            print("- Best result: It {:2d}, {} {}, Correct {}".format(
+                  best_iter, self.score_standard, best_result[self.score_standard], best_result['Correct']))
         return best_result
 
     def train_itself(self, verbose=2):
@@ -548,11 +548,14 @@ class RNN_classify(RNN):
     def cross_validation(self, fold=10, verbose=2):
         """
         Run cross validation
+        * fold [int]: k fold control
         * verbose [int]: visual level including 0/1/2
         - best_result [dict]: the best result with key 'P'/'R'/'F'/'Acc'
         """
-        p_kf, r_kf, f_kf, acc_kf = [], [], [], []
+        kf_results = {}
+
         for count, train, test in self.mod_fold(self.data_dict['x'].shape[0], fold=fold):
+        # for count, (train, test) in enumerate(kf.split(self.data_dict['x'])):
             now_data_dict = {
                 'x': torch.FloatTensor(self.data_dict['x'][train]),
                 'tx': torch.FloatTensor(self.data_dict['x'][test]),
@@ -563,41 +566,42 @@ class RNN_classify(RNN):
             }
 
             if verbose > 0:
-                state = np.argmax(now_data_dict['ty'].numpy(), axis=1).tolist()
-                state = [state.count(i) for i in range(self.n_class)]
+                _ty = np.reshape(now_data_dict['ty'].numpy(), [-1, self.n_class])
+                state = np.bincount(np.argmax(ef.remove_zero_rows(_ty)[0], -1))
                 print("* Fold {}: {}".format(count, state))
             best_iter, best_ty, best_pred, best_result = self._run(now_data_dict, verbose)
             one_hot = True if best_ty.ndim > 1 else False
             if verbose > 0:
-                true_pred, result = predict_analysis(best_ty, best_pred, one_hot=one_hot, simple=True)
-                print("- Best result: It {:2d}, {}, Correct {}".format(
-                    best_iter, ef.format_dict(result), true_pred))
+                print("- Best result: It {:2d}, {} {}, Correct {}".format(
+                      best_iter, self.score_standard, best_result[self.score_standard], best_result['Correct']))
                 print("-" * 88)
-            ef.batch_append([p_kf, r_kf, f_kf, acc_kf], [result['P'], result['R'], result['F'], result['Acc']])
-        p, r, f, acc = ef.list_mean(p_kf), ef.list_mean(r_kf), ef.list_mean(f_kf), ef.list_mean(acc_kf)
-        result = {'P': p, 'R': r, 'F': f, 'Acc': acc}
+
+            for key, value in best_result.items():
+                kf_results.setdefault(key, [])
+                kf_results[key].append(value)
+        kf_mean = {key: ef.list_mean(value) for key, value in kf_results.items()}
         if verbose > 0:
-            print("* Avg: {}".format(ef.format_dict(result)))
-        return result
+            print("* Avg: {} {}".format(self.score_standard, kf_mean[self.score_standard]))
+        return best_result
 
 
 class RNN_sequence(RNN_classify):
     def __init__(self, data_dict, emb_matrix=None, args=None,
-                 class_name=None, col=None, width=None):
+                 vote=False, class_name=None):
         """
         Initilize the LSTM classify model
         * data_dict [dict]: use key like 'x'/'vx'/'ty'/'lq' to store the data
         * emb_matrix [np.array]: word embedding matrix (need emb_type!=None)
         * args [dict]: all model arguments
+        * vote [bool]: vote for duplicate data (need 'id'/'tid' in data_dict)
         * class_name [list]: name of each class
-        * col [list]: name of each column for output
-        * form [list]: width of each column for output
         """
         self.data_dict = data_dict
+        self.vote = vote
         args = default_args(data_dict) if args is None else args
-        RNN.__init__(self, args)
+        base.__init__(self, args)
 
-        self.model = RNN_model(emb_matrix, args, model='sequence')
+        self.model = RNN_model(emb_matrix, args, mode='sequence')
         if self.cuda_enable:
             self.model.cuda()
         self.model_init = deepcopy(self.model.state_dict())
@@ -605,14 +609,8 @@ class RNN_sequence(RNN_classify):
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=self.learning_rate, weight_decay=self.l2_reg
         )
-
         self.class_name = class_name
-        self.col = ["Step", "Loss", "P", "R", "F", "Acc", "Correct"] if col is None else col
-        if width is None:
-            data_scale = (len(str(self.data_dict['x'].shape[0])) + 1) * self.n_class + 1
-            self.width = [4, 6, 6, 6, 6, 6, data_scale]
-        else:
-            self.width = width
+        self._init_display()
 
     def _run(self, now_data_dict, verbose):
         """
@@ -641,13 +639,18 @@ class RNN_sequence(RNN_classify):
             loss = self._run_train(train_loader)
             pred, ty = self._run_test(test_loader)
 
-            vote_pred = self.vote_sequence(pred, self.data_dict['tid'])
-            vote_ty = self.vote_sequence(ty, self.data_dict['tid'])
+            if self.vote:
+                get_pred = self.vote_sequence(pred, self.data_dict['tid'])
+                get_ty = self.vote_sequence(ty, self.data_dict['tid'])
+            else:
+                pred, ty = np.reshape(pred, [-1, self.n_class]), np.reshape(ty, [-1, self.n_class])
+                get_ty, nonzero_ind = ef.remove_zero_rows(ty)
+                get_pred = pred[nonzero_ind]
+                get_ty, get_pred = np.argmax(get_ty, -1), np.argmax(get_pred, -1)
 
-            true_pred, result = predict_analysis(vote_ty, vote_pred, one_hot=False, simple=True)
+            result = predict_analysis(get_ty, get_pred, one_hot=False, simple=True)
             if it % self.display_step == 0 and verbose > 1:
-                ptable.print_row([it, loss, result['P'], result['R'], result['F'],
-                                  result['Acc'], str(true_pred)])
+                ptable.print_row(dict(result, **{"Step": it, "Loss": loss}))
             if verbose == 1:
                 per.change()
 
@@ -655,6 +658,6 @@ class RNN_sequence(RNN_classify):
                 best_score = result[self.score_standard]
                 best_result = result.copy()
                 best_iter = it
-                best_ty = deepcopy(vote_ty)
-                best_pred = deepcopy(vote_pred)
+                best_ty = deepcopy(get_ty)
+                best_pred = deepcopy(get_pred)
         return best_iter, best_ty, best_pred, best_result

@@ -1,6 +1,6 @@
 ## PyTorch简单RNN模型
 
-Version 1.7 by KzXuan
+Version 0.9 by KzXuan
 
 **包含了PyTorch实现的简单RNN模型（LSTM和GRU）用于NLP领域的分类及序列标注任务。**
 
@@ -14,7 +14,7 @@ Version 1.7 by KzXuan
 
 环境：
 
-* Python 3.6/3.7
+* Python 3.5/3.6/3.7
 * PyTorch 0.4.1/1.0.0
 
 超参数说明：
@@ -53,7 +53,9 @@ Version 1.7 by KzXuan
 
   接受data_dict作为参数，初始化所有超参数，并返回参数集。所有参数支持在命令行内直接赋值，或在得到返回值后修改。
 
-* RNN(args)：
+  **在使用此函数获得默认参数集后，大部分参数将不需要再进行手动修改。**
+
+* base(args)：
 
   基类，接受args参数集，初始化模型参数，并包含部分基本函数，集成多次运行取平均、参数网格搜索等功能。
 
@@ -64,6 +66,8 @@ Version 1.7 by KzXuan
 * LSTM_model(input_size, n_hidden, n_layer, drop_prob, bi_direction, GRU_enable=False, use_attention=False)：
 
   封装好的LSTM/GRU模型，可以独立运行，支持单/双向及注意力机制。
+
+  调用时需要传入一个三维的inputs和一个一维的length来保证模型的正常运行。
 
   调用时可选择输出模式"all"/"last"/"att"来分别得到最后一层的全部隐层输出，或最后一层的最后一个时间步的输出，或Attention后的输出。
 
@@ -136,6 +140,17 @@ Version 1.7 by KzXuan
 
 
 
+#### 模型扩展与重写
+
+* 深度神经网络的模型的构建需要继承\<nn.Module\>，建议同时继承基类\<base\>，可以简化参数的使用。在构建时，涉及到LSTM/GRU或者Attention的部分，可以直接调用\<LSTM_model\>和\<self_attention_model\>。
+
+  \<RNN_model\>作为一个RNN模型构建的标准示范，扩展和重写的时候可以作为参考。
+
+* 为执行新构造的模型，需要编写一个入口，建议继承\<RNN_classify\>，通常，只需要重写内部函数_run()即可完成运行模块的编写。
+* 模型执行模块（包括\<RNN_classify>/\<RNN_sequence>）中，集成了大量的输出规范及控制内容，基础修改输出只需要重写内部函数_init_display()即可。可以添加到输出列表中的键值包括["Step", "Loss", "Ma-P", "Ma-F", "Ma-F", "Acc", "C0-P", "C0-R", "C0-F", "C1-P", …, "Correct"]。
+
+
+
 #### 在GPU服务器上的使用
 
 ```python
@@ -143,3 +158,10 @@ from deep_neural.pytorch import default_args, RNN_classify, RNN_sequence
 ```
 
 所有涉及到的工具包（包括word_vector/predict_analysis/step_print/…）在服务器上也可以直接import。
+
+
+
+#### 注意事项
+
+1. 使用Embedding时，应在0位置添加全零向量，以保证在序列补0的情况下，Embedding查询后的向量依然为全零。（#不会导致运算错误和结果异常的建议）
+

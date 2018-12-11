@@ -2,13 +2,13 @@
 # -*- coding: utf-8 -*-
 """
 Use lstm classify model
-Last update: KzXuan, 2018.12.08
+Last update: KzXuan, 2018.12.11
 """
 import numpy as np
 import word_vector as wv
-import utils.easy_function as ef
-from utils.dir_set import dir
-from utils.step_print import slash, run_time
+import easy_function as ef
+from dir_set import dir
+from step_print import slash, run_time
 from model import default_args, RNN_classify
 
 sl, rt = slash(), run_time("* PyTorch LSTM classify model")

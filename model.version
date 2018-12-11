@@ -1,0 +1,100 @@
+PyTorch库编写的神经网络模型
+Ubuntu 16.04 & PyTorch 1.0
+
+Version 0.9
+    1 修复输出显示
+      修复自适应显示导致溢出的问题
+      修复k折交叉验证时，输出类别数量错误的问题
+      添加RC._init_display()函数，取消col/width参数，强制自适应
+    2 修复序列标注模型中必须使用投票机制的问题
+    3 修复无法取某一类别的P/R/F作为模型评判标准的问题
+      更新全部predict_analysis相关机制和输出
+    4 更名基类<RNN>为<base>
+
+Version 0.8
+    1 合并分类模型和序列标注模型
+      创建合并模型<RNN_model(RM)/nn.Module&RNN>
+      删除分类模型<RNN_classify_model(RCM)>和序列标注模型<RNN_sequence_model(RSM)>
+    2 调整分类模型中函数的适用性，避免在序列标注模型中重写
+      更新函数RC.run_train()&RC.run_test()
+      删除函数RS.run_train()&RS.run_test()
+    3 进行运行函数的私有化
+      更名函数RC.run_train()为RC._run_train()，其它函数同样
+    4 调整功能函数对运行函数的输入方式
+      更新函数RNN.average_several_run()和RNN.grid_search()，适应运行函数可能的多种输入
+
+Version 0.7
+    1 修复层次分类中使用Attention的nan值问题
+  * 2 创建序列标注模型<RNN_sequence_model(RSM)/RNN_classify_model>
+      重写RSM.forward()，构造前向网络结构
+  * 3 创建序列标注执行模型<RNN_sequence(RS)/RNN_classify>
+      添加函数RNN.vote_sequence()，为重复数据投票
+      重写函数RS.run_train()，运行训练数据部分
+      重写函数RS.run_test()，运行测试数据部分
+      重写函数RS.run()，完成训练-测试运行部分
+  * 4 PyTorch版本支持更新到1.0.0
+
+Version 0.6
+  * 1 分类模型支持层次分类
+      删除参数RNN.max_seq_len和RNN.max_sen_len
+      添加参数RNN.n_hierarchy，控制层次数量
+      更新RCM类，自适应层次分类和序列长度数据输入
+      调整data_dict输入格式，合并所有长度相关数据
+  * 2 合并LSTM模型和GRU模型
+      创建可添加Attention的RNN模型<LSTM_model/nn.Module>
+      整合排序和层次适应
+      删除GRU模型<GRU_model>
+      更新RCM类，调用<LSTM_model>
+    3 更名注意力机制模型为<self_attention_model/nn.Module>
+    4 添加参数RNN.cuda_enable，适应CPU运行
+
+Version 0.5
+  * 1 改进模型运行方式，提取具体运行部分
+      添加函数RC.run()，完成训练-测试运行部分
+      更新函数RC.train_test()，运行训练-测试数据
+      更新函数RC.cross_validation()，运行单一训练集的交叉验证
+    2 调整模型可视化输出及控制参数位置
+      添加RC.class_name&RC.col&RC.width参数
+      更新RC类，去除模型运行部分所需要的输出控制参数
+      更新RC类运行函数，添加可视输出等级verbose
+    3 添加函数RNN.average_several_run()，支持多次模型运行取平均
+    4 支持网格搜索调参
+      添加函数RNN.attributes_from_dict()，调整参数
+      添加函数RNN.grid_search()，参数网格搜索
+
+Version 0.4
+  * 1 创建LSTM模型<LSTM_model/nn.Module>和GRU模型<GRU_model/nn.Module>
+      封装LSTM和GRU的执行过程和输出
+      更新RCM类，调用LSTM模型和GRU模型
+    2 支持L2正则
+      添加参数l2_reg
+      更新RC类，在优化函数部分添加L2正则
+    3 更新默认参数函数default_args()的使用
+      调用时取默认参数函数并修改，RNN类不再提供参数默认值
+
+Version 0.3
+  * 1 支持Attention操作
+      创建注意力机制模型<self_attention/nn.Module>
+      添加RNN.use_attention参数
+      更新RCM类，支持Attention
+
+Version 0.2
+    1 添加Embedding支持
+      添加RNN.embedding_layer()，设置embedding矩阵
+      更新RCM.forward()，使用emb_type参数判断模式
+    2 更新RCM类，添加Dropout层
+
+Version 0.1
+  * 1 创建基类<RNN>
+      添加函数RNN.create_data_loader()，用以导入数据
+      添加函数RNN.mod_fold()，k折交叉
+  * 2 创建分类模型<RNN_classify_model(RCM)/nn.Module&RNN>
+      重写RCM.forward()，构造前向网络结构
+  * 3 创建分类执行模型<RNN_classify(RC)/RNN>
+      添加函数RC.run_train()，运行训练数据部分
+      添加函数RC.run_test()，运行测试数据部分
+      添加函数RC.train_test()，运行训练-测试数据
+      添加函数RC.train_itself()，运行单一训练集
+      添加函数RC.cross_validation()，运行单一训练集的交叉验证
+    4 创建默认参数函数default_args()，为模型指定默认参数
+    5 模型运行函数均采用最优值代替结束值作为输出

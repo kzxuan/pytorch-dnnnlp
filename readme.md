@@ -75,7 +75,7 @@ Version 0.9 by KzXuan
 
   常规RNN层次模型的封装，支持多层次的分类或序列标注，参数model可选"classify"/"sequence"，模型返回最后的预测结果。
 
-* RNN_classify(data_dict, emb_matrix=None, args=None, class_name=None, col=None, width=None)：
+* RNN_classify(data_dict, emb_matrix=None, args=None, class_name=None)：
 
   **RNN分类模型的入口，使用RNN分类的导入类。**
 
@@ -83,9 +83,7 @@ Version 0.9 by KzXuan
   * train_itself(verbose=2)：单一训练数据并使用本身进行测试的调用函数
   * cross_validation(fold=10, verbose=2)：k折交叉数据的调用函数
 
-  参数class_name, col, width, verbose皆用以控制输出的显示内容、排版和输出内容等级。
-
-* RNN_sequence(data_dict, emb_matrix=None, args=None, vote=False, class_name=None, col=None, width=None)：
+* RNN_sequence(data_dict, emb_matrix=None, args=None, vote=False, class_name=None)：
 
   **RNN序列标注模型的入口，使用RNN序列标注的导入类。**
 
@@ -117,7 +115,7 @@ Version 0.9 by KzXuan
   data_dict = {...}
   args = default_args(data_dict)
   class_name = ['support', 'deny', 'query', 'comment']
-  nn = RNN_sequence(data_dict, emb_mat, args, class_name=class_name)
+  nn = RNN_sequence(data_dict, emb_mat, args, vote=False, class_name=class_name)
   nn.train_test()
   ```
 

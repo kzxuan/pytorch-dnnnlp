@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Predict data analysis
-Last update: KzXuan, 2018.11.29
+Last update: KzXuan, 2018.12.11
 """
 import numpy as np
 import pandas as pd
@@ -16,6 +16,7 @@ def predict_analysis(true, predict, one_hot=False, class_name=None, simple=False
     * predict [array/list]: predict label size of (n_sample,) / (n_sample, n_class)
     * one_hot [bool]: (n_sample, n_class) input needs True
     * class_name [list]: name of each class
+    * simple [bool]: simple result or full
     * digits [int]: mumber of decimal places
     """
     if type(true).__name__ == "list":
@@ -29,7 +30,7 @@ def predict_analysis(true, predict, one_hot=False, class_name=None, simple=False
     n_class = max(np.max(true) + 1, np.max(predict) + 1)
     class_name = list(range(n_class)) if class_name is None else class_name.copy()
 
-    avg_key = 'avg / total'
+    avg_key = 'macro/total'
     class_name.append(avg_key)
     ind, ana = list(), list()
 
@@ -64,19 +65,21 @@ def predict_analysis(true, predict, one_hot=False, class_name=None, simple=False
     for i in range(3, 6):
         ana[i] = np.append(ana[i], round(np.mean(ana[i]), digits))
 
-    ind.append('accuracy')
+    ind.append('accuracy')  # index 6
     acc = [''] * n_class
     acc.append(round(ana[0][n_class] / ana[2][n_class], digits))
     ana.append(acc)
 
     if simple:
-        p, r, f, acc = [ana[i][n_class] for i in range(3, 7)]
-        result = {'P': p, 'R': r, 'F': f, 'Acc': acc}
-        return true_pred, result
+        detail = {'Acc': ana[6][-1], 'Correct': true_pred}
+        detail.update(**{('C%d-P' % c): ana[3][c] for c in range(n_class)}, **{'Ma-P': ana[3][n_class]})
+        detail.update(**{('C%d-R' % c): ana[4][c] for c in range(n_class)}, **{'Ma-R': ana[4][n_class]})
+        detail.update(**{('C%d-F' % c): ana[5][c] for c in range(n_class)}, **{'Ma-F': ana[5][n_class]})
+        return detail
     else:
         ana_str = [np.array(ele, dtype=str) for ele in ana]
         ana_frame = pd.DataFrame(ana_str, index=ind, columns=class_name)
-        return dict(zip(ind, ana)), ana_frame
+        return ana_frame
 
 
 def predict_analysis_met(true, predict, one_hot=False, class_name=None, average='binary', digits=4):

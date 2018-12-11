@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Print the progress of the program
-Last update: KzXuan, 2018.11.29
+Last update: KzXuan, 2018.12.11
 """
 import re
 import sys
@@ -126,14 +126,14 @@ class table_print(object):
         elif type(place).__name__ == 'list':
             self.place = place
         else:
-            raise ValueError("! Woring type for parameter 'place', only allow 'str' or 'int'")
+            raise ValueError("Woring type for parameter 'place', only allow 'str' or 'int'")
 
     def _check(self):
         if not len(self.col) == len(self.width) == len(self.place):
-            raise Exception("! Wrong length for some parameters.")
+            raise Exception("Wrong length for some parameters.")
         for ind, wid in enumerate(self.width):
             if wid < len(self.col[ind]):
-                raise ValueError("! Wrong length for {}.".format(self.col[ind]))
+                raise ValueError("Wrong length for {}.".format(self.col[ind]))
 
     def _style(self, sep):
         styles = {
@@ -153,7 +153,7 @@ class table_print(object):
         elif type(double_sep).__name__ == "int":
             self.seps[double_sep] = d_sep
         else:
-            raise ValueError("! Woring type for parameter 'double_sep', only allow 'int' or 'list'.")
+            raise ValueError("Woring type for parameter 'double_sep', only allow 'int' or 'list'.")
 
     def _header(self):
         for ind, name in enumerate(self.col):
@@ -169,7 +169,7 @@ class table_print(object):
     def _fixed_width(self, value, width, place, padding=False, digits=4):
         if type(value).__name__[:5] == "float":
             if width - digits < 2:
-                raise ValueError("! Woring format for parameters 'width' & 'digits'.")
+                raise ValueError("Woring format for parameters 'width' & 'digits'.")
             form = "{:0{}{}.{}f}" if padding else "{:{}{}.{}f}"
             get = form.format(value, place, width, digits)
             while len(get) > width:
@@ -181,7 +181,7 @@ class table_print(object):
             get = str(value)
             min_width = 7 if value >= 0 else 8
             if len(get) > width and width < min_width:
-                raise ValueError("! No more place for show a int number.")
+                raise ValueError("No more place for show a int number.")
             if len(get) > width:
                 get = "{:{}.{}e}".format(value, place, width - min_width + 1)
             elif len(get) < width and place != '<':
@@ -193,8 +193,8 @@ class table_print(object):
             if len(value) > width and width > 3:
                 value = value[:width - 3] + '...'
             elif len(value) > width and width <= 3:
-                raise ValueError("! No more place for show a string.")
-            elif len(value) < width:
+                raise ValueError("No more place for show a string.")
+            if len(value) < width:
                 get = ' ' + "{:{}{}s}".format(value, place, width - 1)
             else:
                 get = "{:{}{}s}".format(value, place, width)
@@ -203,16 +203,24 @@ class table_print(object):
             try:
                 value = str(value)
             except:
-                raise TypeError("! Wrong type for output.")
+                raise TypeError("Wrong type for output.")
             get = self._fixed_width(value, width, place, padding=padding, digits=digits)
 
         return get
 
     def print_row(self, values, padding=False):
-        if len(values) != len(self.col):
-            raise ValueError("! Wrong length of the input row.")
-        for ind, wid in enumerate(self.width):
-            sysprint(self.seps[ind])
-            sysprint(self._fixed_width(values[ind], wid, self.place[ind],
+        if type(values).__name__ == 'list':
+            if len(values) != len(self.col):
+                raise ValueError("Wrong length of the input row.")
+            for ind, wid in enumerate(self.width):
+                sysprint(self.seps[ind])
+                sysprint(self._fixed_width(values[ind], wid, self.place[ind],
                                         padding=padding, digits=self.digits))
-        print(self.seps[-1])
+            print(self.seps[-1])
+        elif type(values).__name__ == 'dict':
+            for ind, wid in enumerate(self.width):
+                sysprint(self.seps[ind])
+                value = values[self.col[ind]] if self.col[ind] in values else '-'
+                sysprint(self._fixed_width(value, wid, self.place[ind],
+                                           padding=padding, digits=self.digits))
+            print(self.seps[-1])

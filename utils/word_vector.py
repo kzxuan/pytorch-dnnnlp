@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Functions for word2vector operation
-Last update: KzXuan, 2018.12.09
+Last update: KzXuan, 2018.12.10
 """
 import numpy as np
 import codecs as cs
@@ -28,8 +28,9 @@ class word2vector(object):
         return self.vocab[key]
 
     def __setitem__(self, key, value):
-        self.index[key] = len(self.vocab)
-        self.vocab[key] = value
+        if key not in self.vocab:
+            self.index[key] = len(self.vocab)
+            self.vocab[key] = value
 
     def get_matrix(self):
         vector_matrix = []
@@ -49,11 +50,12 @@ class word2vector(object):
         return 1
 
 
-def load_word2vec(in_dir, type='bin', header=True, binary=True):
+def load_word2vec(in_dir, type='bin', header=True, binary=True, add_zero=False):
     """
     Read word2vector original file
     * type [string]: use 'bin' to load '.bin' file and use 'txt' to load '.txt' file
     * binary [bool]: parameter in load_word2vec_format (need type='bin')
+    * add_zero [bool]: add zero vector or not (need type='txt')
     """
     if type == 'bin':
         sl.start("* Load word2vector")
@@ -73,7 +75,7 @@ def load_word2vec(in_dir, type='bin', header=True, binary=True):
             num_word = len(lines)
             emb_dim = len(lines[0].split(' ')) - 1
         per = percent("* Load word2vector", num_word)
-        word_vectors = word2vector(emb_dim, add_zero=False)
+        word_vectors = word2vector(emb_dim, add_zero=add_zero)
         for line in lines:
             word = line.split(' ', 1)[0]
             vector = np.array([float(n) for n in line.split()[-emb_dim:]])

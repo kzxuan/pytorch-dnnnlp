@@ -2,13 +2,14 @@
 # -*- coding: utf-8 -*-
 """
 Functions for operating folder and file or batch
-Last update: KzXuan, 2018.12.08
+Last update: KzXuan, 2018.12.11
 """
 import os
 import json
+import numpy as np
 import codecs as cs
 from copy import deepcopy
-from utils.step_print import slash
+from step_print import slash
 
 sl = slash()
 
@@ -22,6 +23,24 @@ def file_in_dir(now_dir, delete_start=['.']):
     dir_list = os.listdir(now_dir)
     dir_list = [ele for ele in dir_list if ele[0] not in delete_start]
     return dir_list
+
+
+def output_list(data_list, out_dir, state=None, code='utf-8', line_split=False):
+    """
+    Output a list with json
+    * line_split [bool]: each line contains one element
+    """
+    if state is not None:
+        sl.start("* Output %s" % state)
+    with cs.open(out_dir, 'w', code) as outobj:
+        if line_split:
+            for ele in data_list:
+                outobj.write(json.dumps(ele) + '\n')
+        else:
+            json.dump(data_list, outobj)
+    if state is not None:
+        sl.stop()
+    return 1
 
 
 def load_list(in_dir, state=None, code='utf-8', line_split=False):
@@ -42,6 +61,58 @@ def load_list(in_dir, state=None, code='utf-8', line_split=False):
     if state is not None:
         sl.stop()
     return data_list
+
+
+def output_dict(data_dict, out_dir, state=None, code='utf-8', line_split=False):
+    """
+    Output a dict with json
+    * line_split [bool]: each line contains one element or not
+    """
+    if state is not None:
+        sl.start("* Output %s" % state)
+    with cs.open(out_dir, 'w', code) as outobj:
+        if line_split:
+            for key, value in data_dict.items():
+                outobj.write(str(key) + ' ' + json.dumps(value) + '\n')
+        else:
+            json.dump(data_dict, outobj)
+    if state is not None:
+        sl.stop()
+    return 1
+
+
+def load_dict(in_dir, state=None, code='utf-8', line_split=False):
+    """
+    Read a data file that contains dicts
+    * line_split [bool]: each line contains one element or not
+    """
+    if state is not None:
+        sl.start("* Load %s" % state)
+    data_dict = {}
+    with cs.open(in_dir, 'r', code) as inobj:
+        if line_split:
+            for line in inobj:
+                key, value = line.split(' ', 1)
+                value = json.loads(value)
+                data_dict[key] = value
+        else:
+            data_dict = json.load(inobj)
+    if state is not None:
+        sl.stop()
+    return data_dict
+
+
+def read_words(in_dir, state=None, code='utf-8'):
+    """
+    Read word txt that each line has a word and output a list
+    """
+    if state is not None:
+        sl.start("* Read %s" % state)
+    with cs.open(in_dir, 'r', code) as fobj:
+        words = [line.split()[0] for line in fobj]
+    if state is not None:
+        sl.stop()
+    return words
 
 
 def batch_append(lists, values):
@@ -69,19 +140,37 @@ def batch_index(n_samples, batch_size):
     return indexs
 
 
-def one_hot(arr, n_class=0):
+def time_difference(begin, end, format="%a %b %d %H:%M:%S %z %Y"):
     """
-    Change labels to one hot model
+    Calculate the time difference between two tweets
+    * begin [str]: time string
+    * end [str]: time string
     """
-    import numpy as np
+    import datetime as dt
+    atime = dt.datetime.strptime(begin, format)
+    btime = dt.datetime.strptime(end, format)
+    return (btime - atime).seconds
 
-    if arr is None:
-        return None
-    if n_class == 0:
-        n_class = arr.max() + 1
-    oh = np.zeros((arr.size, n_class), dtype=int)
-    oh[np.arange(arr.size), arr] = 1
-    return oh
+
+def list_mean(value):
+    """
+    Mean value of a list
+    * value [list]: some numbers
+    - return [float]: mean value of a list
+    """
+    return sum(value) / len(value)
+
+
+def format_dict(d, key_sep=', ', value_sep=' ', value_format=':.4f'):
+    """
+    Convert result dict to string
+    * d [dict]: including key 'P'/'R'/'F'/'Acc'
+    - str_d [string]: string expression
+    """
+    str_d = key_sep.join(("{}{}{%s}" % value_format).format(
+        key, value_sep, value) for (key, value) in d.items()
+    )
+    return str_d
 
 
 def print_shape(data_dict):
@@ -106,22 +195,30 @@ def print_shape(data_dict):
                 print("- {} shape: {}".format(key, shape))
 
 
-def list_mean(value):
+def one_hot(arr, n_class=0):
     """
-    Mean value of a list
-    * value [list]: some numbers
-    - return [float]: mean value of a list
+    Change labels to one hot model
     """
-    return sum(value) / len(value)
+    import numpy as np
+
+    if arr is None:
+        return None
+    if n_class == 0:
+        n_class = arr.max() + 1
+    oh = np.zeros((arr.size, n_class), dtype=int)
+    oh[np.arange(arr.size), arr] = 1
+    return oh
 
 
-def format_dict(d, key_sep=', ', value_sep=' ', value_format=':.4f'):
+def remove_zero_rows(array):
     """
-    Convert result dict to string
-    * d [dict]: including key 'P'/'R'/'F'/'Acc'
-    - str_d [string]: string expression
+    Remove rows with all zero from an matrix
+    * array [np.array]: matrix with size (-1, n_class)
+    - result [np.array]: after removement
+    - nonzero_row_indice [np.array]: index of nonzero rows
     """
-    str_d = key_sep.join(("{}{}{%s}" % value_format).format(
-        key, value_sep, value) for (key, value) in d.items()
-    )
-    return str_d
+    assert array.ndim == 2, "! Wrong size for input."
+    nonzero_row_indice, _ = array.nonzero()
+    nonzero_row_indice = np.unique(nonzero_row_indice)
+    result = array[nonzero_row_indice]
+    return result, nonzero_row_indice

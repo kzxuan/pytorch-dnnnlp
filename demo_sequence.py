@@ -45,5 +45,5 @@ args.display_step = 1
 args.drop_porb = 0.1
 
 class_name = ['support', 'deny', 'query', 'comment']
-nn = RNN_sequence(data_dict, emb_mat, args, class_name)
+nn = RNN_sequence(data_dict, emb_mat, args, vote=True, class_name=class_name)
 nn.train_test()

@@ -59,13 +59,13 @@ Version 0.9 by KzXuan
 
   基类，接受args参数集，初始化模型参数，并包含部分基本函数，集成多次运行取平均、参数网格搜索等功能。
 
-* self_attention_model(n_hidden)：
+* self_attention_layer(n_hidden)：
 
-  自注意力机制模型，接受隐层节点数n_hidden参数。
+  自注意力机制层，接受隐层节点数n_hidden参数。
 
-* LSTM_model(input_size, n_hidden, n_layer, drop_prob, bi_direction, GRU_enable=False, use_attention=False)：
+* LSTM_layer(input_size, n_hidden, n_layer, drop_prob, bi_direction, GRU_enable=False, use_attention=False)：
 
-  封装好的LSTM/GRU模型，可以独立运行，支持单/双向及注意力机制。
+  封装好的LSTM/GRU层，可以独立运行，支持单/双向及注意力机制。
 
   调用时需要传入一个三维的inputs和一个一维的length来保证模型的正常运行。
 

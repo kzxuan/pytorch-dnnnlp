@@ -12,7 +12,7 @@ class DIR(object):
     TEST = DATA + "test/"
 
     W2V = "/home/kzxuan/word2vec-model/"
-    W2V_GOOGLE = W2V + "/Google_SemEval_w2v.txt"
+    W2V_GOOGLE = W2V + "Google_SemEval_w2v.txt"
 
 
 sep = '/'

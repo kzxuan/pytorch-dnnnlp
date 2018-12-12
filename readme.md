@@ -144,8 +144,8 @@ Version 0.9 by KzXuan
 
   \<RNN_model\>作为一个RNN模型构建的标准示范，扩展和重写的时候可以作为参考。
 
-* 为执行新构造的模型，需要编写一个入口，建议继承\<RNN_classify\>，通常，只需要重写内部函数_run()即可完成运行模块的编写。
-* 模型执行模块（包括\<RNN_classify>/\<RNN_sequence>）中，集成了大量的输出规范及控制内容，基础修改输出只需要重写内部函数_init_display()即可。可以添加到输出列表中的键值包括["Step", "Loss", "Ma-P", "Ma-F", "Ma-F", "Acc", "C0-P", "C0-R", "C0-F", "C1-P", …, "Correct"]。
+* 为执行新构造的模型，需要编写一个入口，建议继承\<RNN_classify\>，通常，只需要重写内部函数\_run()即可完成运行模块的编写，复杂模型还可能需要重写内部函数\_run_train()/\_run_test()。
+* 模型执行模块（包括\<RNN_classify>/\<RNN_sequence>）中，集成了大量的输出规范及控制内容，基础修改输出只需要重写内部函数\_init_display()即可。可以添加到输出列表中的键值包括["Step", "Loss", "Ma-P", "Ma-F", "Ma-F", "Acc", "C0-P", "C0-R", "C0-F", "C1-P", …, "Correct"]。
 
 
 

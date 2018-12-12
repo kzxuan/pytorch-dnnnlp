@@ -4,7 +4,7 @@
 Deep neural networks model written by PyTorch
 Ubuntu 16.04 & PyTorch 1.0
 Last update: KzXuan, 2018.12.10
-Version 0.9.0
+Version 0.9.1
 """
 import torch
 import argparse
@@ -55,7 +55,7 @@ class base(object):
         * cuda_enable [bool]: use GPU to speed up
         * GRU_enable [bool]: use LSTM or GRU model
         * bi_direction [bool]: use bi-direction model or not
-        * n_layer [int]: number of classify layers
+        * n_layer [int]: hidden layer number
         * use_attention [bool]: use attention or not
         * emb_type [str]: use None/'const'/'variable'/'random'
         * emb_dim [int]: embedding dimension
@@ -210,13 +210,13 @@ class base(object):
         print("* All results:\n{}".format(ef.format_dict(results, key_sep='\n', value_sep=': ')))
 
 
-class self_attention_model(nn.Module):
+class self_attention_layer(nn.Module):
     def __init__(self, n_hidden):
         """
         Self-attention model
         * n_hidden [int]: hidden layer number (equal to 2*n_hidden if bi-direction)
         """
-        super(self_attention_model, self).__init__()
+        super(self_attention_layer, self).__init__()
         self.attention = nn.Sequential(
             nn.Linear(n_hidden, n_hidden),
             nn.Tanh(),
@@ -244,7 +244,7 @@ class self_attention_model(nn.Module):
         return outputs
 
 
-class LSTM_model(nn.Module):
+class LSTM_layer(nn.Module):
     def __init__(self, input_size, n_hidden, n_layer, drop_prob,
                  bi_direction, GRU_enable=False, use_attention=False):
         """
@@ -258,7 +258,7 @@ class LSTM_model(nn.Module):
         * GRU_enable [bool]: use LSTM or GRU model
         * use_attention [bool]: use attention or not
         """
-        super(LSTM_model, self).__init__()
+        super(LSTM_layer, self).__init__()
         self.n_hidden = n_hidden
         self.n_layer = n_layer
         self.bi_direction_num = 2 if bi_direction else 1
@@ -274,7 +274,7 @@ class LSTM_model(nn.Module):
             bidirectional=bi_direction
         )
         if use_attention:
-            self.attention = self_attention_model(self.bi_direction_num * n_hidden)
+            self.attention = self_attention_layer(self.bi_direction_num * n_hidden)
 
     def forward(self, inputs, seq_len, out_type='all'):
         """
@@ -283,6 +283,7 @@ class LSTM_model(nn.Module):
         * seq_len [tensor]: sequence length (batch_size,)
         * out_type [str]: out_type [str]: use 'last'/'all'/'att' to choose
         - outputs [tensor]: the last layer (batch_size * max_seq_len * (bi_direction*n_hidden))
+        - att_out [tensor]: output after attention (batch_size * (bi_direction*n_hidden))
         - h_last [tensor]: the last time step of the last layer (batch_size * (bi_direction*n_hidden))
         """
         if inputs.dim() != 3 or seq_len.dim() != 1:
@@ -313,8 +314,8 @@ class LSTM_model(nn.Module):
             )
             outputs = F.pad(outputs, (0, 0, 0, 0, 0, n_pad))
             outputs = torch.index_select(outputs, 0, unsort_index)
-            outputs = self.attention(outputs, seq_len)  # batch_size * (2)n_hidden
-            return outputs
+            att_out = self.attention(outputs, seq_len)  # batch_size * (2)n_hidden
+            return att_out
         elif out_type == 'last':
             h_last = h_last.contiguous().view(
                 self.n_layer, self.bi_direction_num, now_batch_size, self.n_hidden
@@ -327,7 +328,7 @@ class LSTM_model(nn.Module):
             h_last = torch.index_select(h_last, 0, unsort_index)
             return h_last
         else:
-            raise ValueError("! Wrong value of parameter 'out-type', accepts 'all'/'last' only.")
+            raise ValueError("! Wrong value of parameter 'out-type', accepts 'last'/'all'/'att' only.")
 
 
 class RNN_model(nn.Module, base):
@@ -347,9 +348,9 @@ class RNN_model(nn.Module, base):
 
         self.drop_out = nn.Dropout(self.drop_prob)
         self.rnn = nn.ModuleList()
-        self.rnn.append(LSTM_model(self.emb_dim, self.n_hidden, self.n_layer, self.drop_prob,
+        self.rnn.append(LSTM_layer(self.emb_dim, self.n_hidden, self.n_layer, self.drop_prob,
                                    self.bi_direction, self.GRU_enable, self.use_attention))
-        self.rnn.extend([LSTM_model(self.bi_direction_num * self.n_hidden, self.n_hidden, self.n_layer,
+        self.rnn.extend([LSTM_layer(self.bi_direction_num * self.n_hidden, self.n_hidden, self.n_layer,
                                     self.drop_prob, self.bi_direction, self.GRU_enable, self.use_attention)
                          for _ in range(self.n_hierarchy - 1)])
         self.predict = nn.Sequential(
@@ -413,7 +414,6 @@ class RNN_classify(base):
         if self.cuda_enable:
             self.model.cuda()
         self.model_init = deepcopy(self.model.state_dict())
-        self.loss_func = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=self.learning_rate, weight_decay=self.l2_reg
         )
@@ -605,7 +605,6 @@ class RNN_sequence(RNN_classify):
         if self.cuda_enable:
             self.model.cuda()
         self.model_init = deepcopy(self.model.state_dict())
-        self.loss_func = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=self.learning_rate, weight_decay=self.l2_reg
         )

@@ -9,7 +9,10 @@ Version 0.9
     2 修复序列标注模型中必须使用投票机制的问题
     3 修复无法取某一类别的P/R/F作为模型评判标准的问题
       更新全部predict_analysis相关机制和输出
-    4 更名基类<RNN>为<base>
+    4 调整类命名，更符合类的实际定位(层-模型-分类/序列执行)
+      更名基类<RNN>为<base>
+      更名自注意力机制层<self_attention_model>为<self_attention_layer>
+      更名LSTM层<LSTM_model>为<LSTM_layer>
 
 Version 0.8
     1 合并分类模型和序列标注模型
@@ -44,7 +47,7 @@ Version 0.6
       创建可添加Attention的RNN模型<LSTM_model/nn.Module>
       整合排序和层次适应
       删除GRU模型<GRU_model>
-      更新RCM类，调用<LSTM_model>
+      更新RCM类，调用<RNN_model>
     3 更名注意力机制模型为<self_attention_model/nn.Module>
     4 添加参数RNN.cuda_enable，适应CPU运行
 

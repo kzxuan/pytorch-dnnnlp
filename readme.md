@@ -162,5 +162,5 @@ from deep_neural.pytorch import default_args, RNN_classify, RNN_sequence
 #### 注意事项
 
 1. 使用Embedding时，应在0位置添加全零向量，以保证在序列补0的情况下，Embedding查询后的向量依然为全零（#不会导致运算错误和结果异常的建议）。
-2. 表示层级功能的类应以"\_layer"结尾，表示标准模型的类应以"\_model"结尾，表示模型执行的类应以"\_classify"/“\_sequence”等功能性标注结尾。
+2. 表示层级功能的类应以"\_layer"结尾，表示标准模型的类应以"\_model"结尾，表示模型执行的类应以"\_classify"/"\_sequenc"等功能性标注结尾。
 

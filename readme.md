@@ -140,7 +140,7 @@ Version 0.9 by KzXuan
 
 #### 模型扩展与重写
 
-* 深度神经网络的模型的构建需要继承\<nn.Module\>，建议同时继承基类\<base\>，可以简化参数的使用。在构建时，涉及到LSTM/GRU或者Attention的部分，可以直接调用\<LSTM_model\>和\<self_attention_model\>。
+* 深度神经网络的模型的构建需要继承\<nn.Module\>，建议同时继承基类\<base\>，可以简化参数的使用。在构建时，涉及到LSTM/GRU或者Attention的部分，可以直接调用\<LSTM_layer\>和\<self_attention_layer\>。
 
   \<RNN_model\>作为一个RNN模型构建的标准示范，扩展和重写的时候可以作为参考。
 
@@ -161,5 +161,6 @@ from deep_neural.pytorch import default_args, RNN_classify, RNN_sequence
 
 #### 注意事项
 
-1. 使用Embedding时，应在0位置添加全零向量，以保证在序列补0的情况下，Embedding查询后的向量依然为全零。（#不会导致运算错误和结果异常的建议）
+1. 使用Embedding时，应在0位置添加全零向量，以保证在序列补0的情况下，Embedding查询后的向量依然为全零（#不会导致运算错误和结果异常的建议）。
+2. 表示层级功能的类应以"\_layer"结尾，表示标准模型的类应以"\_model"结尾，表示模型执行的类应以"\_classify"/“\_sequence”等功能性标注结尾。
 

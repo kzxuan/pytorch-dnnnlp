@@ -4,7 +4,7 @@
 Deep neural networks model written by PyTorch
 Ubuntu 16.04 & PyTorch 1.0
 Last update: KzXuan, 2018.12.10
-Version 0.9.1
+Version 0.9.5
 """
 import torch
 import argparse
@@ -178,7 +178,7 @@ class base(object):
             print("*" * 88)
         for key in results:
             results[key] = ef.list_mean(results[key])
-        print("* Average score after {} rounds: {} {}".format(
+        print("* Average score after {} rounds: {} {:6.4f}".format(
               times, self.score_standard, results[self.score_standard]))
 
     def grid_search(self, run, params_search=None, **run_args):
@@ -202,10 +202,13 @@ class base(object):
                 max_score = score
                 max_result = result.copy()
                 max_score_params = params
-            print("- Result {}: {:6.4f}\n".format(self.score_standard, score))
+            print("- Result: {} {:6.4f}".format(self.score_standard, score))
             print("*" * 88)
-        print("* Grid search best:\n  {}\n  {}\n".format(
-            ef.format_dict(max_score_params, value_sep=': '), ef.format_dict(max_result))
+        print(
+            "* Grid search best:\n  {}\n  {}".format(
+                ef.format_dict(max_score_params, value_sep=': '),
+                ef.format_dict(max_result)
+            )
         )
         print("* All results:\n{}".format(ef.format_dict(results, key_sep='\n', value_sep=': ')))
 
@@ -222,6 +225,14 @@ class self_attention_layer(nn.Module):
             nn.Tanh(),
             nn.Linear(n_hidden, 1)
         )
+
+    def init_weights(self):
+        """
+        Initialize all the weights and biases for this layer
+        """
+        for m in self.attention.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight, 0.01)
 
     def forward(self, inputs, seq_len):
         """
@@ -246,7 +257,7 @@ class self_attention_layer(nn.Module):
 
 class LSTM_layer(nn.Module):
     def __init__(self, input_size, n_hidden, n_layer, drop_prob,
-                 bi_direction, GRU_enable=False, use_attention=False):
+                 bi_direction=True, GRU_enable=False, use_attention=False):
         """
         LSTM layer model
         * input_size [int]: embedding dim or the last dim of the input
@@ -276,12 +287,23 @@ class LSTM_layer(nn.Module):
         if use_attention:
             self.attention = self_attention_layer(self.bi_direction_num * n_hidden)
 
+    def init_weights(self):
+        """
+        Initialize all the weights and biases for this layer
+        """
+        for layer_p in self.rnn._all_weights:
+            for p in layer_p:
+                if 'weight' in p:
+                    nn.init.xavier_uniform_(self.rnn.__getattr__(p), 0.01)
+                elif 'bias' in p:
+                    nn.init.uniform_(self.rnn.__getattr__(p), -0.01, 0.01)
+
     def forward(self, inputs, seq_len, out_type='all'):
         """
         Forward calculation of the model
         * inputs [tensor]: input tensor (batch_size * max_seq_len * emb_dim)
         * seq_len [tensor]: sequence length (batch_size,)
-        * out_type [str]: out_type [str]: use 'last'/'all'/'att' to choose
+        * out_type [str]: use 'last'/'all'/'att' to choose
         - outputs [tensor]: the last layer (batch_size * max_seq_len * (bi_direction*n_hidden))
         - att_out [tensor]: output after attention (batch_size * (bi_direction*n_hidden))
         - h_last [tensor]: the last time step of the last layer (batch_size * (bi_direction*n_hidden))
@@ -421,8 +443,8 @@ class RNN_classify(base):
         self._init_display()
 
     def _init_display(self):
-        mid = self.score_standard[:-2] if self.score_standard != 'Acc' else 'Ma'
-        self.col = ["Step", "Loss", "%s-P" % mid, "%s-R" % mid, "%s-F" % mid, "Acc", "Correct"]
+        self.prf = self.score_standard.split('-')[0] if self.score_standard != 'Acc' else 'Ma'
+        self.col = ["Step", "Loss", "%s-P" % self.prf, "%s-R" % self.prf, "%s-F" % self.prf, "Acc", "Correct"]
         max_width = np.reshape(self.data_dict['y'], [-1, self.n_class]).shape[0]
         data_scale = (len(str(max_width)) + 1) * self.n_class + 1
         self.width = [4, 6, 6, 6, 6, 6, data_scale]
@@ -491,7 +513,7 @@ class RNN_classify(base):
         for it in range(1, self.iter_times + 1):
             loss = self._run_train(train_loader)
             pred, ty = self._run_test(test_loader)
-            result = predict_analysis(ty, pred, one_hot=True, simple=True)
+            result = predict_analysis(ty, pred, one_hot=True, simple=True, get_prf=self.prf)
             if it % self.display_step == 0 and verbose > 1:
                 ptable.print_row(dict(result, **{"Step": it, "Loss": loss}))
             if verbose == 1:
@@ -528,8 +550,7 @@ class RNN_classify(base):
             )
             print("- Best test result: Iteration {}\n".format(best_iter), ana)
         elif verbose > 0:
-            print("- Best result: It {:2d}, {} {}, Correct {}".format(
-                  best_iter, self.score_standard, best_result[self.score_standard], best_result['Correct']))
+            print("- Best result: It {:2d}, {}".format(best_iter, ef.format_dict(best_result)))
         return best_result
 
     def train_itself(self, verbose=2):
@@ -555,7 +576,6 @@ class RNN_classify(base):
         kf_results = {}
 
         for count, train, test in self.mod_fold(self.data_dict['x'].shape[0], fold=fold):
-        # for count, (train, test) in enumerate(kf.split(self.data_dict['x'])):
             now_data_dict = {
                 'x': torch.FloatTensor(self.data_dict['x'][train]),
                 'tx': torch.FloatTensor(self.data_dict['x'][test]),
@@ -572,8 +592,7 @@ class RNN_classify(base):
             best_iter, best_ty, best_pred, best_result = self._run(now_data_dict, verbose)
             one_hot = True if best_ty.ndim > 1 else False
             if verbose > 0:
-                print("- Best result: It {:2d}, {} {}, Correct {}".format(
-                      best_iter, self.score_standard, best_result[self.score_standard], best_result['Correct']))
+                print("- Best result: It {:2d}, {}".format(best_iter, ef.format_dict(best_result)))
                 print("-" * 88)
 
             for key, value in best_result.items():
@@ -581,8 +600,8 @@ class RNN_classify(base):
                 kf_results[key].append(value)
         kf_mean = {key: ef.list_mean(value) for key, value in kf_results.items()}
         if verbose > 0:
-            print("* Avg: {} {}".format(self.score_standard, kf_mean[self.score_standard]))
-        return best_result
+            print("* Avg: {}".format(ef.format_dict(kf_mean)))
+        return kf_mean
 
 
 class RNN_sequence(RNN_classify):
@@ -647,7 +666,7 @@ class RNN_sequence(RNN_classify):
                 get_pred = pred[nonzero_ind]
                 get_ty, get_pred = np.argmax(get_ty, -1), np.argmax(get_pred, -1)
 
-            result = predict_analysis(get_ty, get_pred, one_hot=False, simple=True)
+            result = predict_analysis(get_ty, get_pred, one_hot=False, simple=True, get_prf=self.prf)
             if it % self.display_step == 0 and verbose > 1:
                 ptable.print_row(dict(result, **{"Step": it, "Loss": loss}))
             if verbose == 1:

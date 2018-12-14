@@ -5,14 +5,18 @@ Version 0.9
     1 修复输出显示
       修复自适应显示导致溢出的问题
       修复k折交叉验证时，输出类别数量错误的问题
+      修复功能性函数的输出异常
       添加RC._init_display()函数，取消col/width参数，强制自适应
     2 修复序列标注模型中必须使用投票机制的问题
     3 修复无法取某一类别的P/R/F作为模型评判标准的问题
       更新全部predict_analysis相关机制和输出
     4 调整类命名，更符合类的实际定位(层-模型-分类/序列执行)
       更名基类<RNN>为<base>
-      更名自注意力机制层<self_attention_model>为<self_attention_layer>
-      更名LSTM层<LSTM_model>为<LSTM_layer>
+      更名自注意力机制层<self_attention_model>为<self_attention_layer(SAL)>
+      更名LSTM层<LSTM_model>为<LSTM_layer(LL)>
+    5 支持模型参数初始化
+      添加函数LL.init_weight()，为LSTM层提供权重初始化
+      添加函数SAL.init_weight()，为自注意力层提供权重初始化
 
 Version 0.8
     1 合并分类模型和序列标注模型

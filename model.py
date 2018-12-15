@@ -4,7 +4,7 @@
 Deep neural networks model written by PyTorch
 Ubuntu 16.04 & PyTorch 1.0
 Last update: KzXuan, 2018.12.10
-Version 0.9.5
+Version 0.9.6
 """
 import torch
 import argparse
@@ -216,7 +216,7 @@ class base(object):
 class self_attention_layer(nn.Module):
     def __init__(self, n_hidden):
         """
-        Self-attention model
+        Self-attention layer
         * n_hidden [int]: hidden layer number (equal to 2*n_hidden if bi-direction)
         """
         super(self_attention_layer, self).__init__()
@@ -233,10 +233,11 @@ class self_attention_layer(nn.Module):
         for m in self.attention.modules():
             if isinstance(m, nn.Linear):
                 nn.init.xavier_uniform_(m.weight, 0.01)
+                nn.init.uniform_(m.bias, -0.01, 0.01)
 
     def forward(self, inputs, seq_len):
         """
-        Forward calculation of the model
+        Forward calculation of the layer
         * inputs [tensor]: input tensor (batch_size * max_seq_len * n_hidden)
         * seq_len [tensor]: sequence length (batch_size,)
         - outputs [tensor]: attention output (batch_size * n_hidden)
@@ -259,7 +260,7 @@ class LSTM_layer(nn.Module):
     def __init__(self, input_size, n_hidden, n_layer, drop_prob,
                  bi_direction=True, GRU_enable=False, use_attention=False):
         """
-        LSTM layer model
+        LSTM layer
         * input_size [int]: embedding dim or the last dim of the input
         * n_hidden [int]: number of hidden layer nodes
         * n_layer [int]: number of classify layers
@@ -300,7 +301,7 @@ class LSTM_layer(nn.Module):
 
     def forward(self, inputs, seq_len, out_type='all'):
         """
-        Forward calculation of the model
+        Forward calculation of the layer
         * inputs [tensor]: input tensor (batch_size * max_seq_len * emb_dim)
         * seq_len [tensor]: sequence length (batch_size,)
         * out_type [str]: use 'last'/'all'/'att' to choose
@@ -353,6 +354,37 @@ class LSTM_layer(nn.Module):
             raise ValueError("! Wrong value of parameter 'out-type', accepts 'last'/'all'/'att' only.")
 
 
+class softmax_layer(nn.Module):
+    def __init__(self, n_in, n_out):
+        """
+        Softmax layer / Full connected layer
+        * n_in [int]: number of input nodes
+        * n_out [int]: number of output nodes
+        """
+        super(softmax_layer, self).__init__()
+        self.connector = nn.Sequential(
+            nn.Linear(n_in, n_out),
+            nn.Softmax(-1)
+        )
+
+    def init_weights(self):
+        """
+        Initialize all the weights and biases for this layer
+        """
+        for m in self.connector.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight, 0.01)
+                nn.init.uniform_(m.bias, -0.01, 0.01)
+
+    def forward(self, inputs):
+        """
+        Forward calculation of the layer
+        * inputs [tensor]: inputs of a full connected layer
+        """
+        outputs = self.connector(inputs)
+        return outputs
+
+
 class RNN_model(nn.Module, base):
     def __init__(self, emb_matrix, args, mode='classify'):
         """
@@ -375,10 +407,7 @@ class RNN_model(nn.Module, base):
         self.rnn.extend([LSTM_layer(self.bi_direction_num * self.n_hidden, self.n_hidden, self.n_layer,
                                     self.drop_prob, self.bi_direction, self.GRU_enable, self.use_attention)
                          for _ in range(self.n_hierarchy - 1)])
-        self.predict = nn.Sequential(
-            nn.Linear(self.n_hidden * self.bi_direction_num, self.n_class),
-            nn.Softmax(-1)
-        )
+        self.predict = softmax_layer(self.n_hidden * self.bi_direction_num, self.n_class)
 
     def forward(self, inputs, *seq_len):
         """

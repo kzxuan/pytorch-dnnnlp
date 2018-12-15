@@ -138,17 +138,6 @@ Version 0.9 by KzXuan
 
 
 
-#### 模型扩展与重写
-
-* 深度神经网络的模型的构建需要继承\<nn.Module\>，建议同时继承基类\<base\>，可以简化参数的使用。在构建时，涉及到LSTM/GRU或者Attention的部分，可以直接调用\<LSTM_layer\>和\<self_attention_layer\>。
-
-  \<RNN_model\>作为一个RNN模型构建的标准示范，扩展和重写的时候可以作为参考。
-
-* 为执行新构造的模型，需要编写一个入口，建议继承\<RNN_classify\>，通常，只需要重写内部函数\_run()即可完成运行模块的编写，复杂模型还可能需要重写内部函数\_run_train()/\_run_test()。
-* 模型执行模块（包括\<RNN_classify>/\<RNN_sequence>）中，集成了大量的输出规范及控制内容，基础修改输出只需要重写内部函数\_init_display()即可。可以添加到输出列表中的键值包括["Step", "Loss", "Ma-P", "Ma-F", "Ma-F", "Acc", "C0-P", "C0-R", "C0-F", "C1-P", …, "Correct"]。
-
-
-
 #### 在GPU服务器上的使用
 
 ```python
@@ -156,6 +145,20 @@ from deep_neural.pytorch import default_args, RNN_classify, RNN_sequence
 ```
 
 所有涉及到的工具包（包括word_vector/predict_analysis/step_print/…）在服务器上也可以直接import。
+
+
+
+#### 模型扩展与重写
+
+- 深度神经网络的模型的构建需要继承\<nn.Module\>，建议同时继承基类\<base\>，可以简化参数的使用。在构建时，涉及到LSTM/GRU或者Attention的部分，可以直接调用\<LSTM_layer\>和\<self_attention_layer\>。
+
+  \<RNN_model\>作为一个RNN模型构建的标准示范，扩展和重写的时候可以作为参考。
+
+- 为执行新构造的模型，需要编写一个入口，建议继承\<RNN_classify\>，通常，只需要重写内部函数\_run()即可完成运行模块的编写，复杂模型还可能需要重写内部函数\_run_train()/\_run_test()。
+
+- 模型执行模块（包括\<RNN_classify>/\<RNN_sequence>）中，集成了大量的输出规范及控制内容，基础修改输出只需要重写内部函数\_init_display()即可。可以添加到输出列表中的键值包括["Step", "Loss", "Ma-P", "Ma-F", "Ma-F", "Acc", "C0-P", "C0-R", "C0-F", "C1-P", …, "Correct"]。
+
+- model_extend中包含了部分已经用PyTorch复现的扩展模型。
 
 
 

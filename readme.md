@@ -71,6 +71,10 @@ Version 0.9 by KzXuan
 
   调用时可选择输出模式"all"/"last"/"att"来分别得到最后一层的全部隐层输出，或最后一层的最后一个时间步的输出，或Attention后的输出。
 
+* softmax_layer(n_in, n_out)：
+
+  简单的Softmax层/全连接层。提供参数初始化函数，需要在模型实例化后调用。
+
 * RNN_model(emb_matrix, args, model='classify')：
 
   常规RNN层次模型的封装，支持多层次的分类或序列标注，参数model可选"classify"/"sequence"，模型返回最后的预测结果。

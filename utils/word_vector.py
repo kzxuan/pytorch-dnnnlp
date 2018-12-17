@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Functions for word2vector operation
-Last update: KzXuan, 2018.12.10
+Last update: KzXuan, 2018.12.15
 """
 import numpy as np
 import codecs as cs
@@ -50,12 +50,12 @@ class word2vector(object):
         return 1
 
 
-def load_word2vec(in_dir, type='bin', header=True, binary=True, add_zero=False):
+def load_word2vec(in_dir, type='txt', header=True, binary=True, check_zero=True):
     """
     Read word2vector original file
     * type [string]: use 'bin' to load '.bin' file and use 'txt' to load '.txt' file
     * binary [bool]: parameter in load_word2vec_format (need type='bin')
-    * add_zero [bool]: add zero vector or not (need type='txt')
+    * check_zero [bool]: check whether the first line is a zero vector (need type='txt')
     """
     if type == 'bin':
         sl.start("* Load word2vector")
@@ -68,17 +68,24 @@ def load_word2vec(in_dir, type='bin', header=True, binary=True, add_zero=False):
     elif type == 'txt':
         with cs.open(in_dir) as fobj:
             lines = fobj.readlines()
+
         if header is True:
-            num_word, emb_dim = [int(ele) for ele in lines[0].split()]
+            num_word, emb_dim = [int(ele) for ele in lines[0].rstrip().split()]
             lines = lines[1:]
         else:
             num_word = len(lines)
-            emb_dim = len(lines[0].split(' ')) - 1
+            emb_dim = len(lines[0].rstrip().split(' ')) - 1
+        if check_zero:
+            first_vec = list(map(float, lines[0].rstrip().split(' ')[1:]))
+            add_zero = True if any(first_vec) else False
+        else:
+            add_zero = False
+
         per = percent("* Load word2vector", num_word)
         word_vectors = word2vector(emb_dim, add_zero=add_zero)
         for line in lines:
             word = line.split(' ', 1)[0]
-            vector = np.array([float(n) for n in line.split()[-emb_dim:]])
+            vector = np.array([float(n) for n in line.rstrip().split()[-emb_dim:]])
             word_vectors[word] = vector
             per.change()
         word_vectors.vector_size = emb_dim
@@ -103,32 +110,42 @@ def output_word2vec(w2v, out_dir):
     return 1
 
 
-def text2vec(text, w2v, model='mean', padding=10):
+def text2vec(text, w2v, mode='mean', padding=0):
     """
     Use word2vec mean to represent a tweet text
     * text [list]: the text composed of vocab
     * w2v [word2vector]: word2vector dict
-    * model [string]: use 'mean' to get the mean value of word vectors
-                      use 'max' to get the max value of each dim
-                      use 'index' to get the index of each word
+    * mode [string]: use 'mean' to get the mean value of word vectors
+                     use 'max' to get the max value of each dim
+                     use 'joint' to get all the values
+                     use 'index' to get the index of each word
     * padding [int]: complement the vector to a fixed value
-                     0 means no padding (need model='index')
+                     0 means no padding (need model='joint'/'index')
     """
-    if model == 'mean':
+    if mode == 'mean':
         mean_vec = [w2v[word] for word in text if word in w2v.vocab]
         mean_vec = np.mean(np.array(mean_vec), 0) if len(mean_vec) else np.zeros(w2v.vector_size)
         return mean_vec
-    elif model == 'max':
+    elif mode == 'max':
         max_vec = [w2v[word] for word in text if word in w2v.vocab]
         max_vec = np.max(np.array(max_vec), 0) if len(max_vec) else np.zeros(w2v.vector_size)
         return max_vec
-    elif model == 'index':
+    elif mode == 'joint':
+        joint_vec = [w2v[word] for word in text if word in w2v.vocab]
+        if padding != 0 and len(joint_vec) > padding:
+            raise ValueError("! Padding is too small for the text.")
+        length = len(joint_vec)
+        if padding:
+            joint_vec.extend([np.zeros(w2v.vector_size) for _ in range(padding - length)])
+        joint_vec = np.array(joint_vec)
+        return joint_vec, length
+    elif mode == 'index':
         index_vec = [w2v.index[word] for word in text if word in w2v.vocab]
         if padding != 0 and len(index_vec) > padding:
             raise ValueError("! Padding is too small for the text.")
         length = len(index_vec)
         if padding:
-            index_vec += [0] * (padding - len(index_vec))
+            index_vec += [0] * (padding - length)
         index_vec = np.array(index_vec)
         return index_vec, length
     else:

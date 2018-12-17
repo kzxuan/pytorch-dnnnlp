@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Functions for operating folder and file or batch
-Last update: KzXuan, 2018.12.11
+Last update: KzXuan, 2018.12.13
 """
 import os
 import json
@@ -161,14 +161,17 @@ def list_mean(value):
     return sum(value) / len(value)
 
 
-def format_dict(d, key_sep=', ', value_sep=' ', value_format=':.4f'):
+def format_dict(d, key_sep=', ', value_sep=' ', digits=4):
     """
     Convert result dict to string
     * d [dict]: including key 'P'/'R'/'F'/'Acc'
     - str_d [string]: string expression
     """
-    str_d = key_sep.join(("{}{}{%s}" % value_format).format(
-        key, value_sep, value) for (key, value) in d.items()
+    for key, value in d.items():
+        if type(value).__name__[:5] == "float":
+            d[key] = round(value, digits)
+    str_d = key_sep.join(
+        [("{}{}{}").format(key, value_sep, str(value)) for (key, value) in d.items()]
     )
     return str_d
 
@@ -199,8 +202,6 @@ def one_hot(arr, n_class=0):
     """
     Change labels to one hot model
     """
-    import numpy as np
-
     if arr is None:
         return None
     if n_class == 0:

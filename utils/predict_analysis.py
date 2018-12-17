@@ -2,14 +2,15 @@
 # -*- coding: utf-8 -*-
 """
 Predict data analysis
-Last update: KzXuan, 2018.12.11
+Last update: KzXuan, 2018.12.13
 """
 import numpy as np
 import pandas as pd
 np.seterr(divide='ignore', invalid='ignore')
 
 
-def predict_analysis(true, predict, one_hot=False, class_name=None, simple=False, digits=4):
+def predict_analysis(true, predict, one_hot=False, class_name=None,
+                     simple=False, get_prf='Ma', digits=4):
     """
     Analysis the predict by calculation
     * true [array/list]: true label size of (n_sample,) / (n_sample, n_class)
@@ -17,6 +18,7 @@ def predict_analysis(true, predict, one_hot=False, class_name=None, simple=False
     * one_hot [bool]: (n_sample, n_class) input needs True
     * class_name [list]: name of each class
     * simple [bool]: simple result or full
+    * get_prf [str]: prf for result with 'Ma'/'C1'/'C2'... (needs simple=True)
     * digits [int]: mumber of decimal places
     """
     if type(true).__name__ == "list":
@@ -71,11 +73,13 @@ def predict_analysis(true, predict, one_hot=False, class_name=None, simple=False
     ana.append(acc)
 
     if simple:
-        detail = {'Acc': ana[6][-1], 'Correct': true_pred}
+        detail = {}
         detail.update(**{('C%d-P' % c): ana[3][c] for c in range(n_class)}, **{'Ma-P': ana[3][n_class]})
         detail.update(**{('C%d-R' % c): ana[4][c] for c in range(n_class)}, **{'Ma-R': ana[4][n_class]})
         detail.update(**{('C%d-F' % c): ana[5][c] for c in range(n_class)}, **{'Ma-F': ana[5][n_class]})
-        return detail
+        result = {key: detail[key] for key in detail.keys() if key.split('-')[0] == get_prf}
+        result.update({'Acc': ana[6][-1], 'Correct': true_pred})
+        return result
     else:
         ana_str = [np.array(ele, dtype=str) for ele in ana]
         ana_frame = pd.DataFrame(ana_str, index=ind, columns=class_name)

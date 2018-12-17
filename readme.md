@@ -1,6 +1,6 @@
 ## PyTorch简单RNN模型
 
-Version 0.9 by KzXuan
+Version 0.10 by KzXuan
 
 **包含了PyTorch实现的简单RNN模型（LSTM和GRU）用于NLP领域的分类及序列标注任务。**
 
@@ -20,6 +20,7 @@ Version 0.9 by KzXuan
 超参数说明：
 
 - cuda_enable [bool]	是否使用GPU加速
+- n_gpu [int]			使用GPU的数量
 - GRU_enable [bool]	使用GRU或LSTM
 - bi_direction [bool]	双向LSTM/GRU
 - n_layer [int]			每个层次的LSTM/GRU层数
@@ -35,7 +36,7 @@ Version 0.9 by KzXuan
 - iter_times [int]		迭代次数
 - display_step [int]		迭代过程中显示输出的间隔迭代次数
 - drop_prob [float]		Dropout比例
-- score_standard [str]	使用'P'/'R'/'F'/'Acc'设定模型评判标准
+- score_standard [str]	使用'Ma-P'/.../‘C1-R'/‘C1-F'/'Acc'设定模型评判标准
 
 数据要求：
 
@@ -160,7 +161,7 @@ from deep_neural.pytorch import default_args, RNN_classify, RNN_sequence
 
 - 为执行新构造的模型，需要编写一个入口，建议继承\<RNN_classify\>，通常，只需要重写内部函数\_run()即可完成运行模块的编写，复杂模型还可能需要重写内部函数\_run_train()/\_run_test()。
 
-- 模型执行模块（包括\<RNN_classify>/\<RNN_sequence>）中，集成了大量的输出规范及控制内容，基础修改输出只需要重写内部函数\_init_display()即可。可以添加到输出列表中的键值包括["Step", "Loss", "Ma-P", "Ma-F", "Ma-F", "Acc", "C0-P", "C0-R", "C0-F", "C1-P", …, "Correct"]。
+- 模型执行模块（包括\<RNN_classify>/\<RNN_sequence>）中，集成了大量的输出规范及控制内容，基础修改输出只需要重写内部函数\_init_display()即可。重写要求提供变量"prf"&"col"&"width"，可以添加到输出列表中的键值包括["Step", "Loss", "Ma-P", "Ma-F", "Ma-F", "Acc", "C0-P", "C0-R", "C0-F", "C1-P", …, "Correct"]。
 
 - model_extend中包含了部分已经用PyTorch复现的扩展模型。
 

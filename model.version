@@ -1,6 +1,13 @@
 PyTorch库编写的神经网络模型
 Ubuntu 16.04 & PyTorch 1.0
 
+Version 0.10
+  * 1 添加单机多GPU并行支持
+      添加参数base.n_gpu
+      更新RC类和RS类，支持多GPU并行
+    2 调整RC类内部运行函数对模型的适用性
+      更新RC._run_train()&RC._run_test()
+
 Version 0.9
     1 修复输出显示
       修复自适应显示导致溢出的问题

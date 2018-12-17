@@ -3,8 +3,8 @@
 """
 Deep neural networks model written by PyTorch
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2018.12.10
-Version 0.9.6
+Last update: KzXuan, 2018.12.17
+Version 0.10.0
 """
 import torch
 import argparse
@@ -21,6 +21,7 @@ from predict_analysis import predict_analysis
 def default_args(data_dict=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--cuda_enable", default=True, type=bool, help="use GPU to speed up")
+    parser.add_argument("--n_gpu", default=1, type=int, help="number of GPUs for running")
     parser.add_argument("--GRU_enable", default=True, type=bool, help="use LSTM or GRU")
     parser.add_argument("--bi_direction", default=True, type=bool, help="bi direction choice")
     parser.add_argument("--n_layer", default=1, type=int, help="hidden layer number")
@@ -53,6 +54,7 @@ class base(object):
         """
         Initilize the model data
         * cuda_enable [bool]: use GPU to speed up
+        * n_gpu [int]: number of GPUs for running
         * GRU_enable [bool]: use LSTM or GRU model
         * bi_direction [bool]: use bi-direction model or not
         * n_layer [int]: hidden layer number
@@ -71,6 +73,7 @@ class base(object):
         * score_standard [str]: use 'P'/'R'/'F'/'Acc'
         """
         self.cuda_enable = args.cuda_enable
+        self.n_gpu = args.n_gpu
         self.GRU_enable = args.GRU_enable
         self.bi_direction = args.bi_direction
         self.n_layer = args.n_layer
@@ -107,7 +110,7 @@ class base(object):
             dataset=dataset,
             shuffle=False,
             batch_size=self.batch_size,
-            num_workers=1,
+            num_workers=1
         )
         return loader
 
@@ -160,18 +163,18 @@ class base(object):
         get_pred = np.array([id_predict[id] for id in id_sort])
         return get_pred
 
-    def average_several_run(self, run, times=5, **run_args):
+    def average_several_run(self, run, times=5, **run_params):
         """
         Get average result after several running
         * run [function]: model run function which returns a result dict including 'P'/'R'/'F'/'Acc'
         * times [int]: run several times for average
-        * run_args [param]: some parameters for run function including 'fold'/'verbose'
+        * run_params [parameter]: some parameters for run function including 'fold'/'verbose'
         """
         results = {}
 
         for i in range(times):
             print("* Run round: {}".format(i + 1))
-            result = run(**run_args)
+            result = run(**run_params)
             for key, score in result.items():
                 results.setdefault(key, [])
                 results[key].append(score)
@@ -181,11 +184,11 @@ class base(object):
         print("* Average score after {} rounds: {} {:6.4f}".format(
               times, self.score_standard, results[self.score_standard]))
 
-    def grid_search(self, run, params_search=None, **run_args):
+    def grid_search(self, run, params_search=None, **run_params):
         """
         * run [function]: model run function which returns a result dict including 'P'/'R'/'F'/'Acc'
         * params_search [dict]: the argument value need to be tried
-        * run_args [param]: some parameters for run function including 'fold'/'verbose'
+        * run_params [parameter]: some parameters for run function including 'fold'/'verbose'
         """
         from sklearn.model_selection import ParameterGrid
 
@@ -195,7 +198,7 @@ class base(object):
         for params in params_search:
             self.attributes_from_dict(params)
             print("* Now params: {}".format(str(params)))
-            result = run(**run_args)
+            result = run(**run_params)
             score = result[self.score_standard]
             results[str(params)] = score
             if score > max_score:
@@ -320,6 +323,7 @@ class LSTM_layer(nn.Module):
         now_batch_size, max_seq_len, _ = inputs.size()
 
         inputs_pack = nn.utils.rnn.pack_padded_sequence(inputs, sort_seq_len, batch_first=True)
+        self.rnn.flatten_parameters()
         if self.GRU_enable:
             outputs, h_last = self.rnn(inputs_pack)  # h_last: (n_layer*bi_direction) * batch_size * n_hidden
         else:
@@ -463,7 +467,10 @@ class RNN_classify(base):
 
         self.model = RNN_model(emb_matrix, args, mode='classify')
         if self.cuda_enable:
-            self.model.cuda()
+            self.gpu_dist = range(self.n_gpu)
+            self.model.cuda(self.gpu_dist[0])
+            if self.n_gpu > 1:
+                self.model = nn.DataParallel(self.model, device_ids=self.gpu_dist)
         self.model_init = deepcopy(self.model.state_dict())
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=self.learning_rate, weight_decay=self.l2_reg
@@ -478,10 +485,11 @@ class RNN_classify(base):
         data_scale = (len(str(max_width)) + 1) * self.n_class + 1
         self.width = [4, 6, 6, 6, 6, 6, data_scale]
 
-    def _run_train(self, train_loader):
+    def _run_train(self, train_loader, **model_params):
         """
         Run train part
         * train_loader [DataLoader]: train data generator
+        * model_params [parameter]: more parameters for model
         - losses [float]: loss of one iteration
         """
         self.model.train()
@@ -489,7 +497,7 @@ class RNN_classify(base):
         for step, (x, y, *lq) in enumerate(train_loader):
             if self.cuda_enable:
                 x, y, lq = x.cuda(), y.cuda(), [ele.cuda() for ele in lq]
-            pred = self.model(x, *lq)
+            pred = self.model(x, *lq, **model_params)
             loss = - torch.sum(y.float() * torch.log(pred)) / torch.sum(lq[-1]).float()
             losses += loss.cpu().data.numpy()
             self.optimizer.zero_grad()
@@ -498,10 +506,11 @@ class RNN_classify(base):
         losses = losses / (step + 1)
         return losses
 
-    def _run_test(self, test_loader):
+    def _run_test(self, test_loader, **model_params):
         """
         Run test part
         * test_loader [DataLoader]: test data generator
+        * model_params [parameter]: more parameters for model
         - preds [np.array]: predicts of the test data
         - tys [np.array]: true label of the test data
         """
@@ -510,7 +519,7 @@ class RNN_classify(base):
         for step, (tx, ty, *tlq) in enumerate(test_loader):
             if self.cuda_enable:
                 tx, ty, tlq = tx.cuda(), ty.cuda(), [ele.cuda() for ele in tlq]
-            pred = self.model(tx, *tlq)
+            pred = self.model(tx, *tlq, **model_params)
 
             preds = torch.cat((preds, pred.cpu()))
             tys = torch.cat((tys, ty.cpu()))
@@ -619,7 +628,6 @@ class RNN_classify(base):
                 state = np.bincount(np.argmax(ef.remove_zero_rows(_ty)[0], -1))
                 print("* Fold {}: {}".format(count, state))
             best_iter, best_ty, best_pred, best_result = self._run(now_data_dict, verbose)
-            one_hot = True if best_ty.ndim > 1 else False
             if verbose > 0:
                 print("- Best result: It {:2d}, {}".format(best_iter, ef.format_dict(best_result)))
                 print("-" * 88)
@@ -651,7 +659,10 @@ class RNN_sequence(RNN_classify):
 
         self.model = RNN_model(emb_matrix, args, mode='sequence')
         if self.cuda_enable:
-            self.model.cuda()
+            self.gpu_dist = range(self.n_gpu)
+            self.model.cuda(self.gpu_dist[0])
+            if self.n_gpu > 1:
+                self.model = nn.DataParallel(self.model, device_ids=self.gpu_dist)
         self.model_init = deepcopy(self.model.state_dict())
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=self.learning_rate, weight_decay=self.l2_reg

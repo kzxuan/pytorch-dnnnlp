@@ -92,9 +92,9 @@ Version 0.10 by KzXuan
 
   常规CNN模型的封装，支持多种卷积核宽度的同时输入，暂不支持层级结构，模型返回最后的预测结果。
 
-* RNN_model(emb_matrix, args, model='classify')：
+* RNN_model(emb_matrix, args, mode='classify')：
 
-  常规RNN层次模型的封装，支持多层次的分类或序列标注，参数model可选"classify"/"sequence"，模型返回最后的预测结果。
+  常规RNN层次模型的封装，支持多层次的分类或序列标注，参数mode可选"classify"/"sequence"，模型返回最后的预测结果。
 
 **4. 运行模块(exec.py)**
 

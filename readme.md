@@ -1,8 +1,8 @@
-## PyTorch简单RNN模型
+## PyTorch简单DNN模型
 
 Version 0.10 by KzXuan
 
-**包含了PyTorch实现的简单RNN模型（LSTM和GRU）用于NLP领域的分类及序列标注任务。**
+**包含了PyTorch实现的简单DNN模型（CNN, LSTM和GRU）用于NLP领域的分类及序列标注任务。**
 
 相比TensorFlow的静态图模型，PyTorch拥有更为原生的Python语言写法，默认支持动态建图。
 
@@ -48,7 +48,7 @@ Version 0.10 by KzXuan
   - 'ty' [np.array]	测试集标签，可选
   - 'tlen' [list]		测试集序列长度，可选
 
-类及函数说明：
+**参数和基类(base.py)**
 
 * default_args(data_dict=None)：
 
@@ -60,39 +60,59 @@ Version 0.10 by KzXuan
 
   基类，接受args参数集，初始化模型参数，并包含部分基本函数，集成多次运行取平均、参数网格搜索等功能。
 
+**封装网络层(layer.py)**  均提供参数初始化函数，需要在类实例化后调用
+
 * self_attention_layer(n_hidden)：
 
-  自注意力机制层，接受隐层节点数n_hidden参数。提供参数初始化函数，需要在模型实例化后调用。
+  自注意力机制层，接受隐层节点数n_hidden参数。
 
-* LSTM_layer(input_size, n_hidden, n_layer, drop_prob, bi_direction, GRU_enable=False, use_attention=False)：
+* CNN_layer(in_channels, out_channels, kernel_width, input_size, stride=1)：
 
-  封装好的LSTM/GRU层，可以独立运行，支持单/双向及注意力机制。提供参数初始化函数，需要在模型实例化后调用。
+  封装的CNN层，支持最大池化和平均池化。
+
+* LSTM_layer(input_size, n_hidden, n_layer, drop_prob, bi_direction, GRU_enable=False)：
+
+  封装的LSTM/GRU层，支持单/双向及注意力机制。
 
   调用时需要传入一个三维的inputs和一个一维的length来保证模型的正常运行。
 
-  调用时可选择输出模式"all"/"last"/"att"来分别得到最后一层的全部隐层输出，或最后一层的最后一个时间步的输出，或Attention后的输出。
+  调用时可选择输出模式"all"/"last"来分别得到最后一层的全部隐层输出，或最后一层的最后一个时间步的输出。
 
 * softmax_layer(n_in, n_out)：
 
   简单的Softmax层/全连接层。提供参数初始化函数，需要在模型实例化后调用。
 
+**封装模型(model.py)**
+
+* CNN_model(emb_matrix, args, kernel_widths)：
+
+  常规CNN模型的封装，支持多种卷积核宽度的同时输入，暂不支持层级结构，模型返回最后的预测结果。
+
 * RNN_model(emb_matrix, args, model='classify')：
 
   常规RNN层次模型的封装，支持多层次的分类或序列标注，参数model可选"classify"/"sequence"，模型返回最后的预测结果。
 
+**运行模块(exec.py)**
+
+* exec(data_dict, args=None, class_name=None)：
+
+  基础运行模块，综合运行模块所必要的部分方式。
+
+  - train_test(verbose=2)：训练-测试数据的调用函数
+  - train_itself(verbose=2)：单一训练数据并使用本身进行测试的调用函数
+  - cross_validation(fold=10, verbose=2)：k折交叉数据的调用函数
+
+* CNN_classify(data_dict, emb_matrix=None, args=None, kernel_widths=[1, 2, 3], class_name=None)：
+
+  **使用CNN分类的执行模块。**
+
 * RNN_classify(data_dict, emb_matrix=None, args=None, class_name=None)：
 
-  **RNN分类模型的入口，使用RNN分类的导入类。**
-
-  * train_test(verbose=2)：训练-测试数据的调用函数
-  * train_itself(verbose=2)：单一训练数据并使用本身进行测试的调用函数
-  * cross_validation(fold=10, verbose=2)：k折交叉数据的调用函数
+  **使用RNN分类的执行模块。**
 
 * RNN_sequence(data_dict, emb_matrix=None, args=None, vote=False, class_name=None)：
 
-  **RNN序列标注模型的入口，使用RNN序列标注的导入类。**
-
-  可调用函数同RNN_classify。
+  **使用RNN序列标注的执行模块。**
 
 
 
@@ -101,7 +121,8 @@ Version 0.10 by KzXuan
 * 分类
 
   ```python
-  from model import default_args, RNN_classify
+  from pytorch.base import default_args
+  from pytorch.exec import RNN_classify
   
   emb_mat = np.array([...])
   data_dict = {...}
@@ -114,7 +135,8 @@ Version 0.10 by KzXuan
 * 序列标注
 
   ```python
-  from model import default_args, RNN_sequence
+  from pytorch.base import default_args
+  from pytorch.exec import RNN_sequence
   
   emb_mat = np.array([...])
   data_dict = {...}
@@ -128,7 +150,7 @@ Version 0.10 by KzXuan
 
   ```python
   args.score_standard = 'Acc'
-  nn = RNN_classify(data_dict, emb_mat, args, class_name=class_name)
+  nn = CNN_classify(data_dict, emb_mat, args, class_name=class_name)
   nn.average_several_run(nn.cross_validation, times=5, fold=5, verbose=2)
   ```
 
@@ -146,7 +168,7 @@ Version 0.10 by KzXuan
 #### 在GPU服务器上的使用
 
 ```python
-from deep_neural.pytorch import default_args, RNN_classify, RNN_sequence
+from dnn.pytorch import base, layer, model, exec
 ```
 
 所有涉及到的工具包（包括word_vector/predict_analysis/step_print/…）在服务器上也可以直接import。
@@ -163,7 +185,7 @@ from deep_neural.pytorch import default_args, RNN_classify, RNN_sequence
 
 - 模型执行模块（包括\<RNN_classify>/\<RNN_sequence>）中，集成了大量的输出规范及控制内容，基础修改输出只需要重写内部函数\_init_display()即可。重写要求提供变量"prf"&"col"&"width"，可以添加到输出列表中的键值包括["Step", "Loss", "Ma-P", "Ma-F", "Ma-F", "Acc", "C0-P", "C0-R", "C0-F", "C1-P", …, "Correct"]。
 
-- model_extend中包含了部分已经用PyTorch复现的扩展模型。
+- pytorch.contrib中包含了部分已经用PyTorch复现的扩展模型。
 
 
 

@@ -54,7 +54,7 @@ Version 0.10 by KzXuan
 
 #### 代码说明
 
-1. 参数和基类(base.py)
+1. 参数和基类**(base.py)**
 
    * default_args(data_dict=None)：
 
@@ -66,7 +66,7 @@ Version 0.10 by KzXuan
 
      基类，接受args参数集，初始化模型参数，并包含部分基本函数，集成多次运行取平均、参数网格搜索等功能。
 
-2. 封装网络层(layer.py)
+2. 封装网络层**(layer.py)**
 
    封装的类都可以脱离项目提供的构造环境来单独运行，且均提供参数初始化函数，需要在类实例化后调用。
 
@@ -90,7 +90,7 @@ Version 0.10 by KzXuan
 
      简单的Softmax层/全连接层。提供参数初始化函数，需要在模型实例化后调用。
 
-3. 封装模型(model.py)
+3. 封装模型**(model.py)**
 
    * CNN_model(emb_matrix, args, kernel_widths)：
 
@@ -100,7 +100,7 @@ Version 0.10 by KzXuan
 
      常规RNN层次模型的封装，支持多层次的分类或序列标注，参数mode可选"classify"/"sequence"，模型返回最后的预测结果。
 
-4. 运行模块(exec.py)
+4. 运行模块**(exec.py)**
 
    * exec(data_dict, args=None, class_name=None)：
 

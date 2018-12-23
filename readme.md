@@ -17,24 +17,27 @@ Version 0.10 by KzXuan
   * PyTorch 0.4.1/1.0.0
 
 * 超参数说明：
-  * cuda_enable [bool]	是否使用GPU加速
-  * n_gpu [int]			使用GPU的数量
-  * GRU_enable [bool]	使用GRU或LSTM
-  * bi_direction [bool]	双向LSTM/GRU
-  * n_layer [int]			每个层次的LSTM/GRU层数
-  * use_attention [bool]	是否使用注意力机制（默认在每一层次的LSTM/GRU上添加）
-  * emb_type [str]		使用None/'const'/'variable'/'random'表示Embedding模式
-  * emb_dim [int]		Embedding维度（输入为特征时表示特征的维度）
-  * n_class [int]			分类的目标类数
-  * n_hierarchy [int]		RNN模型的层次数
-  * n_hidden [int]		LSTM/GRU的隐层节点数，或CNN的输出通道数
-  * learning_rate [float]	学习率
-  * l2_reg [float]			L2正则
-  * batch_size [int]		批量大小
-  * iter_times [int]		迭代次数
-  * display_step [int]		迭代过程中显示输出的间隔迭代次数
-  * drop_prob [float]		Dropout比例
-  * score_standard [str]	使用'Ma-P'/.../‘C1-R'/‘C1-F'/'Acc'设定模型评判标准
+
+  | 参数名         | 类型  | 默认值 | 说明                                                  |
+  | -------------- | ----- | ------ | ----------------------------------------------------- |
+  | cuda_enable    | bool  | True   | 是否使用GPU加速                                       |
+  | n_gpu          | int   | 1      | 使用GPU的数量                                         |
+  | GRU_enable     | bool  | True   | 使用GRU或LSTM                                         |
+  | bi_direction   | bool  | True   | 双向/单向RNN                                          |
+  | n_layer        | int   | 1      | 每个层次的RNN层数                                     |
+  | use_attention  | bool  | Ture   | 是否使用注意力机制（默认在每一层次的RNN上添加）       |
+  | emb_type       | str   | None   | 使用None/'const'/'variable'/'random'表示Embedding模式 |
+  | emb_dim        | int   | 300    | Embedding维度（输入为特征时表示特征的维度）           |
+  | n_class        | int   | 2      | 分类的目标类数                                        |
+  | n_hierarchy    | int   | 1      | RNN模型的层次数                                       |
+  | n_hidden       | int   | 50     | LSTM/GRU的隐层节点数，或CNN的输出通道数               |
+  | learning_rate  | float | 0.01   | 学习率                                                |
+  | l2_reg         | float | 1e-6   | L2正则                                                |
+  | batch_size     | int   | 128    | 批量大小                                              |
+  | iter_times     | int   | 30     | 迭代次数                                              |
+  | display_step   | int   | 2      | 迭代过程中显示输出的间隔迭代次数                      |
+  | drop_prob      | float | 0.1    | Dropout比例                                           |
+  | score_standard | str   | 'Acc'  | 使用'Ma-F'/…/'C1-R'/'C1-F'/'Acc'等设定模型评判标准    |
 
 * 数据要求：
 

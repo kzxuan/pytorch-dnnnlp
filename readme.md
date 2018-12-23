@@ -8,7 +8,7 @@ Version 0.10 by KzXuan
 
 在同数据集同模型同参数的设置下，第一份小数据进行训练+测试用时PyTorch 60s VS TensorFlow 86s；第二份大数据进行十折交叉用时PyTorch 6m26s VS TensorFlow 14m34s，两者的测试准确率结果几乎完全相同，同时PyTorch所占用的GPU资源会更小。
 
-
+ 
 
 #### 模型说明
 
@@ -29,7 +29,7 @@ Version 0.10 by KzXuan
 - emb_dim [int]		Embedding维度（输入为特征时表示特征的维度）
 - n_class [int]			分类的目标类数
 - n_hierarchy [int]		RNN模型的层次数
-- n_hidden [int]		LSTM/GRU的隐层节点数
+- n_hidden [int]		LSTM/GRU的隐层节点数，或CNN的输出通道数
 - learning_rate [float]	学习率
 - l2_reg [float]			L2正则
 - batch_size [int]		批量大小
@@ -185,9 +185,9 @@ from dnn.pytorch import base, layer, model, exec
 
   \<RNN_model\>作为一个RNN模型构建的标准示范，扩展和重写的时候可以作为参考。
 
-- 为执行新构造的模型，需要编写一个入口，建议继承\<RNN_classify\>，通常，只需要重写内部函数\_run()即可完成运行模块的编写，复杂模型还可能需要重写内部函数\_run_train()/\_run_test()。
+- 为执行新构造的模型，需要编写一个入口，建议继承\<exec\>，通常，只需要重写内部函数\_run()即可完成运行模块的编写，复杂模型还可能需要重写内部函数\_run_train()/\_run_test()。
 
-- 模型执行模块（包括\<RNN_classify>/\<RNN_sequence>）中，集成了大量的输出规范及控制内容，基础修改输出只需要重写内部函数\_init_display()即可。重写要求提供变量"prf"&"col"&"width"，可以添加到输出列表中的键值包括["Step", "Loss", "Ma-P", "Ma-F", "Ma-F", "Acc", "C0-P", "C0-R", "C0-F", "C1-P", …, "Correct"]。
+- 模型执行模块\<exec\>中，集成了大量的输出规范及控制内容，基础修改输出只需要重写内部函数\_init_display()即可。重写要求提供变量"prf"&"col"&"width"，可以添加到输出列表中的键值包括["Step", "Loss", "Ma-P", "Ma-F", "Ma-F", "Acc", "C0-P", "C0-R", "C0-F", "C1-P", …, "Correct"]。
 
 - pytorch.contrib中包含了部分已经用PyTorch复现的扩展模型。
 

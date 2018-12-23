@@ -12,12 +12,12 @@ Version 0.10 by KzXuan
 
 #### 模型说明
 
-环境：
+1. 环境：
 
 * Python 3.5/3.6/3.7
 * PyTorch 0.4.1/1.0.0
 
-超参数说明：
+2. 超参数说明：
 
 - cuda_enable [bool]	是否使用GPU加速
 - n_gpu [int]			使用GPU的数量
@@ -38,7 +38,7 @@ Version 0.10 by KzXuan
 - drop_prob [float]		Dropout比例
 - score_standard [str]	使用'Ma-P'/.../‘C1-R'/‘C1-F'/'Acc'设定模型评判标准
 
-数据要求：
+3. 数据要求：
 
 - **构建data_dict并送入模型，data_dict为数据字典**，包含：
   - 'x' [np.array]		训练集输入数据
@@ -48,7 +48,11 @@ Version 0.10 by KzXuan
   - 'ty' [np.array]	测试集标签，可选
   - 'tlen' [list]		测试集序列长度，可选
 
-**参数和基类(base.py)**
+
+
+#### 代码说明
+
+**1. 参数和基类(base.py)**
 
 * default_args(data_dict=None)：
 
@@ -60,7 +64,7 @@ Version 0.10 by KzXuan
 
   基类，接受args参数集，初始化模型参数，并包含部分基本函数，集成多次运行取平均、参数网格搜索等功能。
 
-**封装网络层(layer.py)**  均提供参数初始化函数，需要在类实例化后调用
+**2. 封装网络层(layer.py)**  均提供参数初始化函数，需要在类实例化后调用
 
 * self_attention_layer(n_hidden)：
 
@@ -82,7 +86,7 @@ Version 0.10 by KzXuan
 
   简单的Softmax层/全连接层。提供参数初始化函数，需要在模型实例化后调用。
 
-**封装模型(model.py)**
+**3. 封装模型(model.py)**
 
 * CNN_model(emb_matrix, args, kernel_widths)：
 
@@ -92,7 +96,7 @@ Version 0.10 by KzXuan
 
   常规RNN层次模型的封装，支持多层次的分类或序列标注，参数model可选"classify"/"sequence"，模型返回最后的预测结果。
 
-**运行模块(exec.py)**
+**4. 运行模块(exec.py)**
 
 * exec(data_dict, args=None, class_name=None)：
 

@@ -2,7 +2,7 @@
 
 Version 0.10 by KzXuan
 
-**包含了PyTorch实现的简单DNN模型（CNN, LSTM和GRU）用于NLP领域的分类及序列标注任务。**
+**包含了PyTorch实现的简单DNN模型（CNN & RNN）用于NLP领域的分类及序列标注任务。**
 
 相比TensorFlow的静态图模型，PyTorch拥有更为原生的Python语言写法，默认支持动态建图。
 

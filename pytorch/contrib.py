@@ -3,7 +3,7 @@
 """
 Deep neural networks extend model written by PyTorch
 Ubuntu 16.04 & PyTorch 1.0.0
-Last update: KzXuan, 2018.12.11
+Last update: KzXuan, 2018.12.23
 """
 import torch
 import torch.nn as nn
@@ -39,7 +39,6 @@ class RNN_diachronic_model(nn.Module, base.base):
 
     def _set_fix_weight(self, now_time):
         for nt in range(now_time):
-            for p in self.extractors[nt].parameters():
             for p in self.extractors[nt].parameters():
                 p.requires_grad = False
 

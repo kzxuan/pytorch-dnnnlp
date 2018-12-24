@@ -47,7 +47,7 @@ Version 0.10 by KzXuan
   | ------ | -------------------- | ------------------------------------------------------------ | ------ |
   | 'x'    | np.array             | 训练集输入数据                                               | 是     |
   | 'y'    | np.array             | 训练集标签                                                   | 是     |
-  | 'len'  | list [np.array, ...] | 训练集序列长度，从前往后表示模型从下到上每一个序列层级的序列长度 | 是     |
+  | 'len'  | list [np.array, ...] | 训练集序列长度，从前往后表示模型从下到上每一个层级的序列长度 | 是     |
   | 'tx'   | np.array             | 测试集输入数据                                               | 否     |
   | 'ty'   | np.array             | 测试集标签                                                   | 否     |
   | 'tlen' | list [np.array, ...] | 测试集序列长度，内容同训练集                                 | 否     |
@@ -162,7 +162,7 @@ Version 0.10 by KzXuan
 
   ```python
   args.score_standard = 'Acc'
-  nn = CNN_classify(data_dict, emb_mat, args, class_name=class_name)
+  nn = CNN_classify(data_dict, emb_mat, args, kernel_widths=[1, 2, 3, 4])
   nn.average_several_run(nn.cross_validation, times=5, fold=5, verbose=2)
   ```
 

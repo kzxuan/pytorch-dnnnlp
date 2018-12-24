@@ -45,7 +45,7 @@ args.display_step = 1
 args.drop_porb = 0.1
 
 class_name = ['support', 'deny', 'query', 'comment']
-nn = CNN_classify(data_dict, emb_mat, args, class_name=class_name)
+nn = CNN_classify(data_dict, emb_mat, args, kernel_widths=[1, 2, 3], class_name=class_name)
 nn.train_test()
 
 rt.stop()

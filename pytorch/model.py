@@ -29,7 +29,7 @@ class CNN_model(nn.Module, base.base):
         self.drop_out = nn.Dropout(self.drop_prob)
         self.cnn = nn.ModuleList()
         for kw in kernel_widths:
-            self.cnn.append(layer.CNN_layer(1, self.n_hidden, kw, self.emb_dim))
+            self.cnn.append(layer.CNN_layer(self.emb_dim, 1, self.n_hidden, kw))
         self.predict = layer.softmax_layer(self.n_hidden * len(kernel_widths), self.n_class)
 
     def forward(self, inputs, seq_len):

@@ -16,6 +16,7 @@ Version 0.10
       更新exec._run_train()&exec._run_test()
     5 调整LSTM层封装功能，去除内部封装Attention选择
       更新LL&RM类，重新使用Attention
+    6 调整{layer}中的所有层级，支持无长度输入以增强适用性
 
 Version 0.9
     1 修复输出显示
@@ -103,6 +104,7 @@ Version 0.3
       创建注意力机制模型<self_attention/nn.Module>
       添加RNN.use_attention参数
       更新RCM类，支持Attention
+    2 调整RC内运行函数的适用性
 
 Version 0.2
     1 添加Embedding支持

@@ -1,12 +1,12 @@
 ## PyTorch简单DNN模型
 
-Version 0.10 by KzXuan
+Version 0.11 by KzXuan
 
 **包含了PyTorch实现的简单DNN模型（CNN & RNN）用于NLP领域的分类及序列标注任务。**
 
 相比TensorFlow的静态图模型，PyTorch拥有更为原生的Python语言写法，默认支持动态建图。
 
-在同数据集同模型同参数的设置下，第一份小数据进行训练+测试用时PyTorch 60s VS TensorFlow 86s；第二份大数据进行十折交叉用时PyTorch 6m26s VS TensorFlow 14m34s，两者的测试准确率结果几乎完全相同，同时PyTorch所占用的GPU资源会更小。
+自v0.11起，将略微提高PyTorch所占用的GPU显存，但进一步加快模型运行速度（达到之前的版本的2-3倍，达到TensorFlow静态图模型的2-5倍）。在同数据集同模型同参数的设置下，一份较大的数据进行十折交叉用时PyTorch 4m40s VS TensorFlow 20m06s。
 
 </br>
 
@@ -58,13 +58,13 @@ Version 0.10 by KzXuan
 
 1. 参数和基类 **(base.py)**
 
-   * default_args(data_dict=None)：
+   * default_args(data_dict=None)
 
      接受data_dict作为参数，初始化所有超参数，并返回参数集。所有参数支持在命令行内直接赋值，或在得到返回值后修改。
 
      **在使用此函数获得默认参数集后，大部分参数将不需要再进行手动修改。**
 
-   * base(args)：
+   * base(args)
 
      基类，接受args参数集，初始化模型参数，并包含部分基本函数，集成多次运行取平均、参数网格搜索等功能。
 
@@ -72,39 +72,43 @@ Version 0.10 by KzXuan
 
    封装的类都可以脱离项目提供的构造环境来单独运行，且均提供参数初始化函数，需要在类实例化后调用。
 
-   * self_attention_layer(n_hidden)：
+   * self_attention_layer(n_hidden)
 
      自注意力机制层，接受隐层节点数n_hidden参数。
 
-   * CNN_layer(in_channels, out_channels, kernel_width, input_size, stride=1)：
+   * CNN_layer(input_size, in_channels, out_channels, kernel_width, stride=1)
 
      封装的CNN层，支持最大池化和平均池化。
 
-   * LSTM_layer(input_size, n_hidden, n_layer, drop_prob, bi_direction, GRU_enable=False)：
+     调用时需要传入一个四维的inputs来保证模型的正常运行，若传入的inputs为三维，会自动添加一个第二维，并在第二维上复制in_channels次。若需要使用长度信息，seq_len必须是一维向量。
+
+     调用时可选择输出模式"max"/"mean"/"all"来分别得到最大池化后的输出，平均池化后的输出或原始的全部输出。
+
+   * LSTM_layer(input_size, n_hidden, n_layer, drop_prob, bi_direction, GRU_enable=False)
 
      封装的LSTM/GRU层，支持单/双向及注意力机制。
 
-     调用时需要传入一个三维的inputs和一个一维的length来保证模型的正常运行。
+     调用时需要传入一个三维的inputs来保证模型的正常运行。若需要使用长度信息，seq_len必须是一维向量。
 
      调用时可选择输出模式"all"/"last"来分别得到最后一层的全部隐层输出，或最后一层的最后一个时间步的输出。
 
-   * softmax_layer(n_in, n_out)：
+   * softmax_layer(n_in, n_out)
 
      简单的Softmax层/全连接层。提供参数初始化函数，需要在模型实例化后调用。
 
 3. 封装模型 **(model.py)**
 
-   * CNN_model(emb_matrix, args, kernel_widths)：
+   * CNN_model(emb_matrix, args, kernel_widths)
 
      常规CNN模型的封装，支持多种卷积核宽度的同时输入，暂不支持层级结构，模型返回最后的预测结果。
 
-   * RNN_model(emb_matrix, args, mode='classify')：
+   * RNN_model(emb_matrix, args, mode='classify')
 
      常规RNN层次模型的封装，支持多层次的分类或序列标注，参数mode可选"classify"/"sequence"，模型返回最后的预测结果。
 
 4. 运行模块 **(exec.py)**
 
-   * exec(data_dict, args=None, class_name=None)：
+   * exec(data_dict, args=None, class_name=None)
 
      基础运行模块，封装运行所需要的三种基本模式：
 
@@ -114,15 +118,15 @@ Version 0.10 by KzXuan
 
      (3) cross_validation(fold=10, verbose=2)：k折交叉数据的调用函数
 
-   * CNN_classify(data_dict, emb_matrix=None, args=None, kernel_widths=[1, 2, 3], class_name=None)：
+   * CNN_classify(data_dict, emb_matrix=None, args=None, kernel_widths=[1, 2, 3], class_name=None)
 
      **使用CNN分类的执行模块。**
 
-   * RNN_classify(data_dict, emb_matrix=None, args=None, class_name=None)：
+   * RNN_classify(data_dict, emb_matrix=None, args=None, class_name=None)
 
      **使用RNN分类的执行模块。**
 
-   * RNN_sequence(data_dict, emb_matrix=None, args=None, vote=False, class_name=None)：
+   * RNN_sequence(data_dict, emb_matrix=None, args=None, vote=False, class_name=None)
 
      **使用RNN序列标注的执行模块。**
 
@@ -189,7 +193,7 @@ from dnn.pytorch import base, layer, model, exec
 
 #### 模型扩展与重写
 
-- 深度神经网络的模型的构建需要继承\<nn.Module\>，建议同时继承基类\<base\>，可以简化参数的使用。在构建时，涉及到已经封装好的网络层级，可以直接调用\<LSTM_layer\>、\<self_attention_layer\>等。
+- 深度神经网络模型的构建需要继承\<nn.Module\>，建议同时继承基类\<base\>，可以简化参数的使用。在构建时，涉及到已经封装好的网络层级，可以直接调用\<LSTM_layer\>、\<self_attention_layer\>等。
 
   \<RNN_model\>作为一个RNN模型构建的标准示范，扩展和重写的时候可以作为参考。
 

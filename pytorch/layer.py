@@ -3,10 +3,9 @@
 """
 Some common layers for deep neural network
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2018.12.24
+Last update: KzXuan, 2018.12.27
 """
 import torch
-import argparse
 import numpy as np
 import torch.nn as nn
 import torch.utils.data as Data

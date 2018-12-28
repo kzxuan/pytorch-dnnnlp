@@ -3,7 +3,7 @@
 """
 Some base modules for deep neural network
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2018.12.23
+Last update: KzXuan, 2018.12.28
 """
 import torch
 import argparse
@@ -105,8 +105,7 @@ class base(object):
         loader = Data.DataLoader(
             dataset=dataset,
             shuffle=False,
-            batch_size=self.batch_size,
-            num_workers=1
+            batch_size=self.batch_size
         )
         return loader
 
@@ -180,7 +179,7 @@ class base(object):
         print("* Average score after {} rounds: {} {:6.4f}".format(
               times, self.score_standard, results[self.score_standard]))
 
-    def grid_search(self, run, params_search=None, **run_params):
+    def grid_search(self, run, params_search, **run_params):
         """
         * run [function]: model run function which returns a result dict including 'P'/'R'/'F'/'Acc'
         * params_search [dict]: the argument value need to be tried

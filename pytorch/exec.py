@@ -3,10 +3,9 @@
 """
 Execution functions for deep neural models
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2018.12.23
+Last update: KzXuan, 2018.12.28
 """
 import torch
-import argparse
 import numpy as np
 import torch.nn as nn
 import easy_function as ef
@@ -26,11 +25,12 @@ class exec(base.base):
         * args [dict]: all model arguments
         * class_name [list]: name of each class
         """
-        args = default_args(data_dict) if args is None else args
+        args = base.default_args(data_dict) if args is None else args
         base.base.__init__(self, args)
 
         self.data_dict = data_dict
         self.class_name = class_name
+        self.device = torch.device("cuda") if self.cuda_enable else torch.device("cpu")
         self._init_display()
 
     def _init_display(self):
@@ -53,8 +53,6 @@ class exec(base.base):
         self.model.train()
         losses = 0.0
         for step, (x, y, *lq) in enumerate(train_loader):
-            if self.cuda_enable:
-                x, y, lq = x.cuda(), y.cuda(), [ele.cuda() for ele in lq]
             pred = self.model(x, *lq, **model_params)
             loss = - torch.sum(y.float() * torch.log(pred)) / torch.sum(lq[-1]).float()
             losses += loss.cpu().data.numpy()
@@ -75,31 +73,23 @@ class exec(base.base):
         self.model.eval()
         preds, tys = torch.FloatTensor(), torch.LongTensor()
         for step, (tx, ty, *tlq) in enumerate(test_loader):
-            if self.cuda_enable:
-                tx, ty, tlq = tx.cuda(), ty.cuda(), [ele.cuda() for ele in tlq]
             pred = self.model(tx, *tlq, **model_params)
 
             preds = torch.cat((preds, pred.cpu()))
             tys = torch.cat((tys, ty.cpu()))
         return preds.data.numpy(), tys.data.numpy()
 
-    def _run(self, now_data_dict, verbose):
+    def _run(self, train_loader, test_loader, verbose):
         """
         Model run part
-        * now_data_dict [dict]: data dict with torch.tensor in it
+        * train_loader [DataLoader]: train data generator
+        * test_loader [DataLoader]: test data generator
         * verbose [int]: visual hierarchy including 0/1/2
         - best_iter [int]: the iteration number of the best result
         - best_ty [np.array] the true label of the best result
         - best_pred [np.array]: the prediction of the best result
         - best_result [dict]: the best result value including 'P'/'R'/'F'/'Acc'
         """
-        train_loader = self.create_data_loader(
-            now_data_dict['x'], now_data_dict['y'], *now_data_dict['len']
-        )
-        test_loader = self.create_data_loader(
-            now_data_dict['tx'], now_data_dict['ty'], *now_data_dict['tlen']
-        )
-
         self.model.load_state_dict(self.model_init)
         best_score = -1
         if verbose > 1:
@@ -129,16 +119,18 @@ class exec(base.base):
         * verbose [int]: visual level including 0/1/2
         - best_result [dict]: the best result with key 'P'/'R'/'F'/'Acc'
         """
-        now_data_dict = {
-            'x': torch.FloatTensor(self.data_dict['x']),
-            'tx': torch.FloatTensor(self.data_dict['tx']),
-            'y': torch.LongTensor(self.data_dict['y']),
-            'ty': torch.LongTensor(self.data_dict['ty']),
-            'len': [torch.IntTensor(ele) for ele in self.data_dict['len']],
-            'tlen': [torch.IntTensor(ele) for ele in self.data_dict['tlen']]
-        }
+        train_loader = self.create_data_loader(
+            torch.tensor(self.data_dict['x'], dtype=torch.float, device=self.device),
+            torch.tensor(self.data_dict['y'], dtype=torch.long, device=self.device),
+            *[torch.tensor(ele, dtype=torch.int, device=self.device) for ele in self.data_dict['len']]
+        )
+        test_loader = self.create_data_loader(
+            torch.tensor(self.data_dict['tx'], dtype=torch.float, device=self.device),
+            torch.tensor(self.data_dict['ty'], dtype=torch.long, device=self.device),
+            *[torch.tensor(ele, dtype=torch.int, device=self.device) for ele in self.data_dict['tlen']]
+        )
 
-        best_iter, best_ty, best_pred, best_result = self._run(now_data_dict, verbose)
+        best_iter, best_ty, best_pred, best_result = self._run(train_loader, test_loader, verbose)
         one_hot = True if best_ty.ndim > 1 else False
         if verbose > 1:
             ana = predict_analysis(
@@ -167,25 +159,27 @@ class exec(base.base):
         Run cross validation
         * fold [int]: k fold control
         * verbose [int]: visual level including 0/1/2
-        - best_result [dict]: the best result with key 'P'/'R'/'F'/'Acc'
+        - best_result [dict]: the best result with key 'C1-P'/'Ma-R'/'Ma-F'/'Acc'
         """
         kf_results = {}
 
         for count, train, test in self.mod_fold(self.data_dict['x'].shape[0], fold=fold):
-            now_data_dict = {
-                'x': torch.FloatTensor(self.data_dict['x'][train]),
-                'tx': torch.FloatTensor(self.data_dict['x'][test]),
-                'y': torch.LongTensor(self.data_dict['y'][train]),
-                'ty': torch.LongTensor(self.data_dict['y'][test]),
-                'len': [torch.IntTensor(ele[train]) for ele in self.data_dict['len']],
-                'tlen': [torch.IntTensor(ele[test]) for ele in self.data_dict['len']]
-            }
+            train_loader = self.create_data_loader(
+                torch.tensor(self.data_dict['x'][train], dtype=torch.float, device=self.device),
+                torch.tensor(self.data_dict['y'][train], dtype=torch.long, device=self.device),
+                *[torch.tensor(ele[train], dtype=torch.int, device=self.device) for ele in self.data_dict['len']]
+            )
+            test_loader = self.create_data_loader(
+                torch.tensor(self.data_dict['x'][test], dtype=torch.float, device=self.device),
+                torch.tensor(self.data_dict['y'][test], dtype=torch.long, device=self.device),
+                *[torch.tensor(ele[test], dtype=torch.int, device=self.device) for ele in self.data_dict['len']]
+            )
 
             if verbose > 0:
-                _ty = np.reshape(now_data_dict['ty'].numpy(), [-1, self.n_class])
+                _ty = np.reshape(self.data_dict['y'][test], [-1, self.n_class])
                 state = np.bincount(np.argmax(ef.remove_zero_rows(_ty)[0], -1))
                 print("* Fold {}: {}".format(count, state))
-            best_iter, best_ty, best_pred, best_result = self._run(now_data_dict, verbose)
+            best_iter, best_ty, best_pred, best_result = self._run(train_loader, test_loader, verbose)
             if verbose > 0:
                 print("- Best result: It {:2d}, {}".format(best_iter, ef.format_dict(best_result)))
                 print("-" * 88)

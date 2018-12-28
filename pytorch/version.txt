@@ -1,8 +1,13 @@
 PyTorch库编写的神经网络模型
 Ubuntu 16.04 & PyTorch 1.0
 
+Version 0.11
+  * 1 逻辑优化和速度优化，降低50%系统内存占用空间并提升超过2倍的运行速度
+      修复数据读取异常消耗内存的问题
+      改进数据读取方式，使用略高的显存消耗再次加速运行
+
 Version 0.10
-  * 1 代码结构全部调整，拆分为base/layer/model/exec四个模块
+  * 1 代码结构调整，拆分为base/layer/model/exec四个模块
       添加contrib模块存放扩展模型
       在{exec}下添加执行模块基类<exec>
   * 2 支持CNN

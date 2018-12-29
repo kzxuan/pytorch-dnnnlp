@@ -3,7 +3,7 @@
 """
 Some extend models written by contributor
 Ubuntu 16.04 & PyTorch 1.0.0
-Last update: KzXuan, 2018.12.27
+Last update: KzXuan, 2018.12.29
 """
 import torch
 import numpy as np
@@ -132,14 +132,7 @@ class RNN_diachronic_classify(exec.exec):
         losses = losses / (step + 1)
         return losses
 
-    def _run(self, now_data_dict, verbose):
-        train_loader = self.create_data_loader(
-            now_data_dict['x'], now_data_dict['y'], now_data_dict['len']
-        )
-        test_loader = self.create_data_loader(
-            now_data_dict['tx'], now_data_dict['ty'], now_data_dict['tlen']
-        )
-
+    def _run(self, train_loader, test_loader, verbose):
         self.model.reset_fix_weight()
         if verbose > 1:
             ptable = table_print(self.col, self.width, sep="vertical")
@@ -169,21 +162,23 @@ class RNN_diachronic_classify(exec.exec):
     def cross_validation(self, fold=10, verbose=2):
         fold_results = []
         for count, train, test in self.mod_fold(self.data_dict['x'].shape[0], fold=fold):
-            now_data_dict = {
-                'x': torch.FloatTensor(self.data_dict['x'][train]),
-                'tx': torch.FloatTensor(self.data_dict['x'][test]),
-                'y': torch.LongTensor(self.data_dict['y'][train]),
-                'ty': torch.LongTensor(self.data_dict['y'][test]),
-                'len': torch.IntTensor(self.data_dict['len'][train]),
-                'tlen': torch.IntTensor(self.data_dict['len'][test])
-            }
+            train_loader = self.create_data_loader(
+                torch.tensor(self.data_dict['x'][train], device=self.device),
+                torch.tensor(self.data_dict['y'][train], device=self.device),
+                torch.tensor(self.data_dict['len'][train], device=self.device),
+            )
+            test_loader = self.create_data_loader(
+                torch.tensor(self.data_dict['x'][test], device=self.device),
+                torch.tensor(self.data_dict['y'][test], device=self.device),
+                torch.tensor(self.data_dict['len'][test], device=self.device),
+            )
 
             if verbose > 0:
-                _ty = np.reshape(now_data_dict['ty'].numpy(), [-1, self.n_class])
+                _ty = np.reshape(self.data_dict['y'][test], [-1, self.n_class])
                 state = np.bincount(np.argmax(ef.remove_zero_rows(_ty)[0], -1))
                 print("* Fold {}: {}".format(count, state))
 
-            best_result = self._run(now_data_dict, verbose)
+            best_result = self._run(train_loader, test_loader, verbose)
             fold_results.append(best_result)
             if verbose > 0:
                 print("* Best scores:", " ".join(["{:.4f}".format(s) for s in best_result]))

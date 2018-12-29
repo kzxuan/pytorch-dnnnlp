@@ -3,7 +3,7 @@
 """
 Execution functions for deep neural models
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2018.12.28
+Last update: KzXuan, 2018.12.29
 """
 import torch
 import numpy as np
@@ -30,8 +30,15 @@ class exec(base.base):
 
         self.data_dict = data_dict
         self.class_name = class_name
-        self.device = torch.device("cuda") if self.cuda_enable else torch.device("cpu")
+        self.device = torch.device("cuda") if self.n_gpu else torch.device("cpu")
         self._init_display()
+
+    def _model_to_cuda(self):
+        if self.n_gpu:
+            self.gpu_dist = range(self.n_gpu)
+            self.model.cuda(self.gpu_dist[0])
+            if self.n_gpu > 1:
+                self.model = nn.DataParallel(self.model, device_ids=self.gpu_dist)
 
     def _init_display(self):
         """
@@ -71,7 +78,7 @@ class exec(base.base):
         - tys [np.array]: true label of the test data
         """
         self.model.eval()
-        preds, tys = torch.FloatTensor(), torch.LongTensor()
+        preds, tys = torch.FloatTensor(), torch.IntTensor()
         for step, (tx, ty, *tlq) in enumerate(test_loader):
             pred = self.model(tx, *tlq, **model_params)
 
@@ -121,12 +128,12 @@ class exec(base.base):
         """
         train_loader = self.create_data_loader(
             torch.tensor(self.data_dict['x'], dtype=torch.float, device=self.device),
-            torch.tensor(self.data_dict['y'], dtype=torch.long, device=self.device),
+            torch.tensor(self.data_dict['y'], dtype=torch.int, device=self.device),
             *[torch.tensor(ele, dtype=torch.int, device=self.device) for ele in self.data_dict['len']]
         )
         test_loader = self.create_data_loader(
             torch.tensor(self.data_dict['tx'], dtype=torch.float, device=self.device),
-            torch.tensor(self.data_dict['ty'], dtype=torch.long, device=self.device),
+            torch.tensor(self.data_dict['ty'], dtype=torch.int, device=self.device),
             *[torch.tensor(ele, dtype=torch.int, device=self.device) for ele in self.data_dict['tlen']]
         )
 
@@ -139,6 +146,8 @@ class exec(base.base):
             print("- Best test result: Iteration {}\n".format(best_iter), ana)
         else:
             print("- Best result: It {:2d}, {}".format(best_iter, ef.format_dict(best_result)))
+        if 'Correct' in best_result:
+            del best_result['Correct']
         return best_result
 
     def train_itself(self, verbose=2):
@@ -166,12 +175,12 @@ class exec(base.base):
         for count, train, test in self.mod_fold(self.data_dict['x'].shape[0], fold=fold):
             train_loader = self.create_data_loader(
                 torch.tensor(self.data_dict['x'][train], dtype=torch.float, device=self.device),
-                torch.tensor(self.data_dict['y'][train], dtype=torch.long, device=self.device),
+                torch.tensor(self.data_dict['y'][train], dtype=torch.int, device=self.device),
                 *[torch.tensor(ele[train], dtype=torch.int, device=self.device) for ele in self.data_dict['len']]
             )
             test_loader = self.create_data_loader(
                 torch.tensor(self.data_dict['x'][test], dtype=torch.float, device=self.device),
-                torch.tensor(self.data_dict['y'][test], dtype=torch.long, device=self.device),
+                torch.tensor(self.data_dict['y'][test], dtype=torch.int, device=self.device),
                 *[torch.tensor(ele[test], dtype=torch.int, device=self.device) for ele in self.data_dict['len']]
             )
 
@@ -187,7 +196,7 @@ class exec(base.base):
             for key, value in best_result.items():
                 kf_results.setdefault(key, [])
                 kf_results[key].append(value)
-        kf_mean = {key: ef.list_mean(value) for key, value in kf_results.items()}
+        kf_mean = {key: ef.list_mean(value) for key, value in kf_results.items() if key != 'Correct'}
         print("* Avg: {}".format(ef.format_dict(kf_mean)))
         return kf_mean
 
@@ -206,11 +215,7 @@ class CNN_classify(exec):
         exec.__init__(self, data_dict, args, class_name)
 
         self.model = model.CNN_model(emb_matrix, args, kernel_widths)
-        if self.cuda_enable:
-            self.gpu_dist = range(self.n_gpu)
-            self.model.cuda(self.gpu_dist[0])
-            if self.n_gpu > 1:
-                self.model = nn.DataParallel(self.model, device_ids=self.gpu_dist)
+        self._model_to_cuda()
         self.model_init = deepcopy(self.model.state_dict())
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=self.learning_rate, weight_decay=self.l2_reg
@@ -229,11 +234,7 @@ class RNN_classify(exec):
         exec.__init__(self, data_dict, args, class_name)
 
         self.model = model.RNN_model(emb_matrix, args, mode='classify')
-        if self.cuda_enable:
-            self.gpu_dist = range(self.n_gpu)
-            self.model.cuda(self.gpu_dist[0])
-            if self.n_gpu > 1:
-                self.model = nn.DataParallel(self.model, device_ids=self.gpu_dist)
+        self._model_to_cuda()
         self.model_init = deepcopy(self.model.state_dict())
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=self.learning_rate, weight_decay=self.l2_reg
@@ -255,33 +256,23 @@ class RNN_sequence(exec):
         exec.__init__(self, data_dict, args, class_name)
 
         self.model = model.RNN_model(emb_matrix, args, mode='sequence')
-        if self.cuda_enable:
-            self.gpu_dist = range(self.n_gpu)
-            self.model.cuda(self.gpu_dist[0])
-            if self.n_gpu > 1:
-                self.model = nn.DataParallel(self.model, device_ids=self.gpu_dist)
+        self._model_to_cuda()
         self.model_init = deepcopy(self.model.state_dict())
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=self.learning_rate, weight_decay=self.l2_reg
         )
 
-    def _run(self, now_data_dict, verbose):
+    def _run(self, train_loader, test_loader, verbose):
         """
         Model run part
-        * now_data_dict [dict]: data dict with torch.tensor in it
+        * train_loader [DataLoader]: train data generator
+        * test_loader [DataLoader]: test data generator
         * verbose [int]: visual hierarchy including 0/1/2
         - best_iter [int]: the iteration number of the best result
         - best_ty [np.array] the true label of the best result
         - best_pred [np.array]: the prediction of the best result
         - best_result [dict]: the best result value including 'P'/'R'/'F'/'Acc'
         """
-        train_loader = self.create_data_loader(
-            now_data_dict['x'], now_data_dict['y'], *now_data_dict['len']
-        )
-        test_loader = self.create_data_loader(
-            now_data_dict['tx'], now_data_dict['ty'], *now_data_dict['tlen']
-        )
-
         self.model.load_state_dict(self.model_init)
         best_score = -1
         if verbose > 1:

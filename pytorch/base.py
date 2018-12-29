@@ -3,7 +3,7 @@
 """
 Some base modules for deep neural network
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2018.12.28
+Last update: KzXuan, 2018.12.29
 """
 import torch
 import argparse
@@ -16,7 +16,6 @@ import torch.nn.functional as F
 
 def default_args(data_dict=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--cuda_enable", default=True, type=bool, help="use GPU to speed up")
     parser.add_argument("--n_gpu", default=1, type=int, help="number of GPUs for running")
     parser.add_argument("--GRU_enable", default=True, type=bool, help="use LSTM or GRU")
     parser.add_argument("--bi_direction", default=True, type=bool, help="bi direction choice")
@@ -49,7 +48,6 @@ class base(object):
     def __init__(self, args):
         """
         Initilize the model data
-        * cuda_enable [bool]: use GPU to speed up
         * n_gpu [int]: number of GPUs for running
         * GRU_enable [bool]: use LSTM or GRU model
         * bi_direction [bool]: use bi-direction model or not
@@ -68,7 +66,6 @@ class base(object):
         * drop_prob [float]: drop out ratio
         * score_standard [str]: use 'P'/'R'/'F'/'Acc'
         """
-        self.cuda_enable = args.cuda_enable
         self.n_gpu = args.n_gpu
         self.GRU_enable = args.GRU_enable
         self.bi_direction = args.bi_direction

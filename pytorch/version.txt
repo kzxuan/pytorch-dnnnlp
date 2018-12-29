@@ -4,7 +4,11 @@ Ubuntu 16.04 & PyTorch 1.0
 Version 0.11
   * 1 逻辑优化和速度优化，降低50%系统内存占用空间并提升超过2倍的运行速度
       修复数据读取异常消耗内存的问题
-      改进数据读取方式，使用略高的显存消耗再次加速运行
+      优化数据读取方式及与GPU的交互方式，使用略高的显存消耗再次加速运行
+      删除base.cuda_enable参数，添加函数exec._model_to_cuda()，优化模型导入GPU的方式
+  * 2 支持模型参数初始化
+      添加函数CL.init_weight()，为CNN模型提供权重初始化
+      添加函数RL.init_weight()，为RNN模型提供权重初始化
 
 Version 0.10
   * 1 代码结构调整，拆分为base/layer/model/exec四个模块
@@ -38,7 +42,7 @@ Version 0.9
       更名LSTM层<LSTM_model>为<LSTM_layer(LL)>
   * 5 创建Softmax层/全连接层<softmax_layer(SL)/nn.Module>
       更新RCM类，调用SL
-  * 6 支持模型参数初始化
+  * 6 支持层级参数初始化
       添加函数LL.init_weight()，为LSTM层提供权重初始化
       添加函数SAL.init_weight()，为自注意力层提供权重初始化
       添加函数SL.init_weight()，为Softmax层提供权重初始化
@@ -81,7 +85,7 @@ Version 0.6
     4 添加参数RNN.cuda_enable，适应CPU运行
 
 Version 0.5
-  * 1 改进模型运行方式，提取具体运行部分
+  * 1 优化模型运行方式，提取具体运行部分
       添加函数RC.run()，完成训练-测试运行部分
       更新函数RC.train_test()，运行训练-测试数据
       更新函数RC.cross_validation()，运行单一训练集的交叉验证

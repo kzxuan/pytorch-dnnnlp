@@ -3,7 +3,7 @@
 """
 Some common models for deep neural network
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2018.12.27
+Last update: KzXuan, 2018.12.29
 """
 import torch
 import numpy as np
@@ -30,6 +30,13 @@ class CNN_model(nn.Module, base.base):
         for kw in kernel_widths:
             self.cnn.append(layer.CNN_layer(self.emb_dim, 1, self.n_hidden, kw))
         self.predict = layer.softmax_layer(self.n_hidden * len(kernel_widths), self.n_class)
+
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, layer.CNN_layer):
+                m.init_weights()
+            if isinstance(m, layer.softmax_layer):
+                m.init_weights()
 
     def forward(self, inputs, seq_len):
         """
@@ -76,6 +83,15 @@ class RNN_model(nn.Module, base.base):
             if self.use_attention:
                 self.att.append(layer.self_attention_layer(self.bi_direction_num * self.n_hidden))
         self.predict = layer.softmax_layer(self.n_hidden * self.bi_direction_num, self.n_class)
+
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, layer.LSTM_layer):
+                m.init_weights()
+            if isinstance(m, layer.self_attention_layer):
+                m.init_weights()
+            if isinstance(m, layer.softmax_layer):
+                m.init_weights()
 
     def forward(self, inputs, *seq_len):
         """

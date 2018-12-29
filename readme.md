@@ -20,8 +20,7 @@ Version 0.11 by KzXuan
 
   | 参数名         | 类型  | 默认值 | 说明                                                  |
   | -------------- | ----- | ------ | ----------------------------------------------------- |
-  | cuda_enable    | bool  | True   | 是否使用GPU加速                                       |
-  | n_gpu          | int   | 1      | 使用GPU的数量                                         |
+  | n_gpu          | int   | 1      | 使用GPU的数量（0表示不使用GPU加速）                   |
   | GRU_enable     | bool  | True   | 使用GRU或LSTM                                         |
   | bi_direction   | bool  | True   | 双向/单向RNN                                          |
   | n_layer        | int   | 1      | 每个层次的RNN层数                                     |
@@ -173,7 +172,7 @@ Version 0.11 by KzXuan
 * 网格搜索调参
 
   ```python
-  args.score_standard = 'F'
+  args.score_standard = 'C1-F'
   nn = RNN_classify(data_dict, emb_mat, args, class_name=class_name)
   params_search = {"l2_reg": [1e-3, 1e-5], "batch_size": [64, 128]}
   nn.grid_search(nn.train_test, params_search=params_search)

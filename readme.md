@@ -93,9 +93,11 @@ Version 0.11 by KzXuan
 
    * softmax_layer(n_in, n_out)
 
-     简单的Softmax层/全连接层。提供参数初始化函数，需要在模型实例化后调用。
+     简单的Softmax层/全连接层。
 
 3. 封装模型 **(model.py)**
+
+   封装的模型不可以脱离项目提供的构造环境运行，均提供参数初始化函数，需要在类实例化后调用。
 
    * CNN_model(emb_matrix, args, kernel_widths)
 

@@ -55,7 +55,7 @@ Version 0.11 by KzXuan
 
 #### 代码说明
 
-1. 参数和基类 **(base.py)**
+1. 参数和基类 **([base.py](./pytorch/base.py))**
 
    * default_args(data_dict=None)
 
@@ -67,7 +67,7 @@ Version 0.11 by KzXuan
 
      基类，接受args参数集，初始化模型参数，并包含部分基本函数，集成多次运行取平均、参数网格搜索等功能。
 
-2. 封装网络层 **(layer.py)**
+2. 封装网络层 **([layer.py](./pytorch/layer.py))**
 
    封装的类都可以脱离项目提供的构造环境来单独运行，且均提供参数初始化函数，需要在类实例化后调用。
 
@@ -85,7 +85,7 @@ Version 0.11 by KzXuan
 
    * LSTM_layer(input_size, n_hidden, n_layer, drop_prob, bi_direction, GRU_enable=False)
 
-     封装的LSTM/GRU层，支持单/双向及注意力机制。
+     封装的LSTM/GRU层，支持单/双向及多层堆叠。
 
      调用时需要传入一个三维的inputs来保证模型的正常运行。若需要使用长度信息，seq_len必须是一维向量。
 
@@ -95,7 +95,7 @@ Version 0.11 by KzXuan
 
      简单的Softmax层/全连接层。
 
-3. 封装模型 **(model.py)**
+3. 封装模型 **([model.py](./pytorch/model.py))**
 
    封装的模型不可以脱离项目提供的构造环境运行，均提供参数初始化函数，需要在类实例化后调用。
 
@@ -107,7 +107,7 @@ Version 0.11 by KzXuan
 
      常规RNN层次模型的封装，支持多层次的分类或序列标注，参数mode可选"classify"/"sequence"，模型返回最后的预测结果。
 
-4. 运行模块 **(exec.py)**
+4. 运行模块 **([exec.py](./pytorch/exec.py))**
 
    * exec(data_dict, args=None, class_name=None)
 
@@ -202,7 +202,7 @@ from dnn.pytorch import base, layer, model, exec
 
 - 模型执行模块\<exec\>中，集成了大量的输出规范及控制内容，基础修改输出只需要重写内部函数\_init_display()即可。重写要求提供变量"prf"&"col"&"width"，可以添加到输出列表中的键值包括["Step", "Loss", "Ma-P", "Ma-F", "Ma-F", "Acc", "C0-P", "C0-R", "C0-F", "C1-P", …, "Correct"]。
 
-- pytorch.contrib中包含了部分已经用PyTorch复现的扩展模型。
+- [contrib.py](./pytorch/contrib.py)中包含了部分已经用PyTorch复现的扩展模型。
 
 </br>
 

@@ -7,8 +7,11 @@ Version 0.11
       优化数据读取方式及与GPU的交互方式，使用略高的显存消耗再次加速运行
       删除base.cuda_enable参数，添加函数exec._model_to_cuda()，优化模型导入GPU的方式
   * 2 支持模型参数初始化
-      添加函数CL.init_weight()，为CNN模型提供权重初始化
-      添加函数RL.init_weight()，为RNN模型提供权重初始化
+      添加函数CM.init_weight()，为CNN模型提供权重初始化
+      添加函数RM.init_weight()，为RNN模型提供权重初始化
+    3 添加参数base.data_shuffle()，支持打乱数据操作
+  * 4 支持Transformer
+    5 调整RNN.embedding_layer()至layer.embedding_layer()
 
 Version 0.10
   * 1 代码结构调整，拆分为base/layer/model/exec四个模块

@@ -3,7 +3,7 @@
 """
 Some base modules for deep neural network
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2018.12.29
+Last update: KzXuan, 2019.01.23
 """
 import torch
 import argparse
@@ -17,6 +17,7 @@ import torch.nn.functional as F
 def default_args(data_dict=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_gpu", default=1, type=int, help="number of GPUs for running")
+    parser.add_argument("--data_shuffle", default=False, type=bool, help="shuffle data")
     parser.add_argument("--GRU_enable", default=True, type=bool, help="use LSTM or GRU")
     parser.add_argument("--bi_direction", default=True, type=bool, help="bi direction choice")
     parser.add_argument("--n_layer", default=1, type=int, help="hidden layer number")
@@ -49,6 +50,7 @@ class base(object):
         """
         Initilize the model data
         * n_gpu [int]: number of GPUs for running
+        * data_shuffle [bool]: shuffle data
         * GRU_enable [bool]: use LSTM or GRU model
         * bi_direction [bool]: use bi-direction model or not
         * n_layer [int]: hidden layer number
@@ -64,9 +66,10 @@ class base(object):
         * iter_times [int]: iteration times
         * display_step [int]: the interval iterations to display
         * drop_prob [float]: drop out ratio
-        * score_standard [str]: use 'P'/'R'/'F'/'Acc'
+        * score_standard [str]: use 'Ma-P'/'C1-R'/'C1-F'/'Acc'
         """
         self.n_gpu = args.n_gpu
+        self.data_shuffle = args.data_shuffle
         self.GRU_enable = args.GRU_enable
         self.bi_direction = args.bi_direction
         self.n_layer = args.n_layer
@@ -101,23 +104,10 @@ class base(object):
         dataset = Data.TensorDataset(*data)
         loader = Data.DataLoader(
             dataset=dataset,
-            shuffle=False,
+            shuffle=self.data_shuffle,
             batch_size=self.batch_size
         )
         return loader
-
-    def embedding_layer(self, emb_matrix):
-        """
-        Initialize embedding place
-        * emb_matrix [np.array]: embedding matrix with size (num, dim)
-        """
-        if self.emb_type == 'const':
-            self.emb_mat = nn.Embedding.from_pretrained(torch.FloatTensor(emb_matrix))
-        elif self.emb_type == 'variable':
-            self.emb_mat = nn.Embedding.from_pretrained(torch.FloatTensor(emb_matrix))
-            self.emb_mat.weight.requires_grad = True
-        elif self.emb_type == 'random':
-            self.emb_mat = nn.Embedding(emb_matrix.shape[0], emb_matrix.shape[1])
 
     @staticmethod
     def mod_fold(length, fold=10):

@@ -3,7 +3,7 @@
 """
 Some common models for deep neural network
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2018.12.29
+Last update: KzXuan, 2019.01.23
 """
 import torch
 import numpy as np
@@ -24,7 +24,7 @@ class CNN_model(nn.Module, base.base):
         nn.Module.__init__(self)
         base.base.__init__(self, args)
 
-        self.embedding_layer(emb_matrix)
+        self.emb_mat = layer.embedding_layer(emb_matrix, self.emb_type)
         self.drop_out = nn.Dropout(self.drop_prob)
         self.cnn = nn.ModuleList()
         for kw in kernel_widths:
@@ -50,7 +50,6 @@ class CNN_model(nn.Module, base.base):
         now_batch_size, max_seq_len, emb_dim = inputs.size()
 
         outputs = self.drop_out(inputs)
-        outputs = torch.reshape(outputs, [-1, max_seq_len, outputs.size(-1)])
         seq_len = torch.reshape(seq_len, [-1])
         outputs = torch.cat([c(outputs, seq_len, out_type='max') for c in self.cnn], -1)
 
@@ -70,9 +69,9 @@ class RNN_model(nn.Module, base.base):
         base.base.__init__(self, args)
 
         self.mode = mode
-        self.embedding_layer(emb_matrix)
         self.bi_direction_num = 2 if self.bi_direction else 1
 
+        self.emb_mat = layer.embedding_layer(emb_matrix, self.emb_type)
         self.drop_out = nn.Dropout(self.drop_prob)
 
         rnn_params = (self.n_hidden, self.n_layer, self.drop_prob, self.bi_direction, self.GRU_enable)
@@ -128,6 +127,54 @@ class RNN_model(nn.Module, base.base):
                 outputs = self.rnn[hi](outputs, now_seq_len, out_type='last')  # batch_size * (2)n_hidden
         elif self.mode == 'sequence':
             outputs = self.rnn[hi](outputs, now_seq_len, out_type='all')  # batch_size * max_seq_len * (2)n_hidden
+
+        pred = self.predict(outputs)
+        return pred
+
+
+class transformer_model(nn.Module, base.base):
+    def __init__(self, emb_matrix, args, n_head):
+        """
+        Initilize the model data and layer
+        * emb_matrix [np.array]: word embedding matrix
+        * args [dict]: all model arguments
+        * n_head [int]: number of attentions
+        """
+        nn.Module.__init__(self)
+        base.base.__init__(self, args)
+
+        self.emb_mat = layer.embedding_layer(emb_matrix, self.emb_type)
+        self.pos_emb_mat = layer.positional_embedding_layer(self.emb_dim)
+        self.drop_out = nn.Dropout(self.drop_prob)
+        self.transformer = nn.ModuleList(
+            [layer.transformer_layer(2 *self.emb_dim, self.n_hidden, n_head) for _ in range(self.n_layer)]
+        )
+        self.predict = layer.softmax_layer(2 * self.emb_dim, self.n_class)
+
+    def forward(self, inputs, seq_len):
+        """
+        Forward calculation of the model
+        * inputs [tensor]: model inputs x
+        * seq_len [tensor]: sequence length
+        """
+        if self.emb_type is not None:
+            inputs = self.emb_mat(inputs.long())
+        now_batch_size, max_seq_len, emb_dim = inputs.size()
+        seq_len = torch.reshape(seq_len, [-1])
+
+        outputs = self.drop_out(inputs)
+        outputs = torch.cat((outputs, self.pos_emb_mat(outputs).expand_as(outputs)), -1)
+
+        if seq_len is not None:
+            seq_len = seq_len.type_as(outputs.data)
+            query = torch.arange(0, max_seq_len, device=inputs.device).unsqueeze(1).float()
+            mask = torch.lt(query, seq_len.unsqueeze(0)).float().transpose(0, 1)
+            mask = mask.contiguous().view(now_batch_size, max_seq_len, 1)
+            outputs = outputs * mask
+
+        for nl in range(self.n_layer - 1):
+            outputs = self.transformer[nl](outputs, seq_len, get_index=None)
+        outputs = self.transformer[-1](outputs, seq_len, get_index=0)
 
         pred = self.predict(outputs)
         return pred

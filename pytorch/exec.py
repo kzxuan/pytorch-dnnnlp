@@ -3,7 +3,7 @@
 """
 Execution functions for deep neural models
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2018.12.29
+Last update: KzXuan, 2018.12.23
 """
 import torch
 import numpy as np
@@ -30,7 +30,7 @@ class exec(base.base):
 
         self.data_dict = data_dict
         self.class_name = class_name
-        self.device = torch.device("cuda") if self.n_gpu else torch.device("cpu")
+        self.device = torch.device("cuda:0") if self.n_gpu else torch.device("cpu")
         self._init_display()
 
     def _model_to_cuda(self):
@@ -103,7 +103,7 @@ class exec(base.base):
             ptable = table_print(self.col, self.width, sep="vertical")
         if verbose == 1:
             per = percent("* Run model", self.iter_times)
-        for it in range(1, self.iter_times + 1):
+        for it in range(1, self.iter_timeso + 1):
             loss = self._run_train(train_loader)
             pred, ty = self._run_test(test_loader)
             result = predict_analysis(ty, pred, one_hot=True, simple=True, get_prf=self.prf)
@@ -305,3 +305,24 @@ class RNN_sequence(exec):
                 best_ty = deepcopy(get_ty)
                 best_pred = deepcopy(get_pred)
         return best_iter, best_ty, best_pred, best_result
+
+
+class transformer_classify(exec):
+    def __init__(self, data_dict, emb_matrix=None, args=None,
+                 n_head=8, class_name=None):
+        """
+        Initilize the CNN classification model
+        * data_dict [dict]: use key like 'x'/'vx'/'ty'/'lq' to store the data
+        * emb_matrix [np.array]: word embedding matrix (need emb_type!=None)
+        * args [dict]: all model arguments
+        * n_head [int]: number of context attentions
+        * class_name [list]: name of each class
+        """
+        exec.__init__(self, data_dict, args, class_name)
+
+        self.model = model.transformer_model(emb_matrix, args, n_head)
+        self._model_to_cuda()
+        self.model_init = deepcopy(self.model.state_dict())
+        self.optimizer = torch.optim.Adam(
+            self.model.parameters(), lr=self.learning_rate, weight_decay=self.l2_reg
+        )

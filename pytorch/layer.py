@@ -3,13 +3,64 @@
 """
 Some common layers for deep neural network
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2018.12.29
+Last update: KzXuan, 2019.01.23
 """
+import math
 import torch
 import numpy as np
 import torch.nn as nn
 import torch.utils.data as Data
 import torch.nn.functional as F
+
+
+def embedding_layer(emb_matrix, emb_type='const'):
+    """
+    Initialize embedding place
+    * emb_matrix [np.array]: embedding matrix with size (num, dim)
+    * emb_type [str]: use None/'const'/'variable'/'random'
+    - emb_mat [Module]: embedding query module
+    """
+    if emb_type == 'const':
+        emb_mat = nn.Embedding.from_pretrained(torch.FloatTensor(emb_matrix))
+    elif emb_type == 'variable':
+        emb_mat = nn.Embedding.from_pretrained(torch.FloatTensor(emb_matrix))
+        emb_mat.weight.requires_grad = True
+    elif emb_type == 'random':
+        emb_mat = nn.Embedding(emb_matrix.shape[0], emb_matrix.shape[1])
+    else:
+        emb_mat = None
+    return emb_mat
+
+
+class positional_embedding_layer(nn.Module):
+    def __init__(self, emb_dim, max_len=512):
+        """
+        Generate positional embedding
+        * emb_dim [int]: embedding dimension of the output
+        * max_len [int]: max length to generate
+        """
+        assert emb_dim % 2 == 0, "! Embedding must be even."
+        super(positional_embedding_layer, self).__init__()
+
+        pe = torch.zeros(max_len, emb_dim).float()
+        pe.require_grad = False
+
+        position = torch.arange(0, max_len).float().unsqueeze(1)
+        div_term = (torch.arange(0, emb_dim, 2).float() * -(math.log(10000.0) / emb_dim)).exp()
+
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0)
+        self.register_buffer('pe', pe)
+
+    def forward(self, inputs):
+        """
+        Forward calculation of the layer
+        * inputs [tensor]: input tensor (batch_size * max_seq_len * emb_dim)
+        - outputs [tensor]: the same shape of positional embedding (max_seq_len * emb_dim)
+        """
+        outputs = self.pe[:, :inputs.size(1)]
+        return outputs
 
 
 class self_attention_layer(nn.Module):
@@ -42,7 +93,7 @@ class self_attention_layer(nn.Module):
         - outputs [tensor]: attention output (batch_size * n_hidden)
         """
         if inputs.dim() != 3 or (seq_len is not None and seq_len.dim() != 1):
-            raise ValueError("! Wrong dimemsion of the input parameters.")
+            raise ValueError("! Wrong dimemsion of the inputs parameters.")
 
         now_batch_size, max_seq_len, _ = inputs.size()
         alpha = self.attention(inputs).contiguous().view(now_batch_size, 1, max_seq_len)
@@ -98,7 +149,7 @@ class CNN_layer(nn.Module):
             inputs = torch.unsqueeze(inputs, 1)
             inputs = inputs.repeat(1, self.in_channels, 1, 1)
         if inputs.dim() != 4 or (seq_len is not None and seq_len.dim() != 1):
-            raise ValueError("! Wrong dimemsion of the input parameters.")
+            raise ValueError("! Wrong dimemsion of the inputs parameters.")
 
         now_batch_size, _, max_seq_len, _ = inputs.size()
         left_len = max_seq_len - self.kernel_width + 1
@@ -174,7 +225,7 @@ class LSTM_layer(nn.Module):
         - h_last [tensor]: the last time step of the last layer (batch_size * (bi_direction*n_hidden))
         """
         if inputs.dim() != 3 or (seq_len is not None and seq_len.dim() != 1):
-            raise ValueError("! Wrong dimemsion of the input parameters.")
+            raise ValueError("! Wrong dimemsion of the inputs parameters.")
 
         now_batch_size, max_seq_len, _ = inputs.size()
         if seq_len is not None:
@@ -242,4 +293,115 @@ class softmax_layer(nn.Module):
         * inputs [tensor]: inputs of a full connected layer
         """
         outputs = self.connector(inputs)
+        return outputs
+
+
+class context_attention_layer(nn.Module):
+    def __init__(self, input_size, n_hidden):
+        """
+        The attention operation in transformer
+        * input_size [int]: embedding dim or the last dim of the input
+        * n_hidden [int]: number of hidden weight matrix nodes
+        """
+        super(context_attention_layer, self).__init__()
+        self.input_size = input_size
+        self.query = nn.Sequential(
+            nn.Linear(input_size, n_hidden, bias=False),
+            nn.Tanh()
+        )
+        self.key = nn.Sequential(
+            nn.Linear(input_size, n_hidden, bias=False),
+            nn.Tanh()
+        )
+        self.value = nn.Sequential(
+            nn.Linear(input_size, n_hidden, bias=False),
+            nn.Tanh()
+        )
+
+    def forward(self, inputs):
+        """
+        Forward calculation of the layer
+        * inputs [tensor]: input tensor (batch_size * max_seq_len * input_size)
+        - outputs [tensor]: expression after attention (batch_size * max_seq_len * n_hidden)
+        """
+        if inputs.dim() != 3 or inputs.size(-1) != self.input_size:
+            raise ValueError("! Wrong dimemsion of the inputs parameters.")
+
+        q, k, v = self.query(inputs), self.key(inputs), self.value(inputs)
+        score = torch.bmm(q, k.transpose(1, 2)) / np.sqrt(self.input_size)
+        sum_score = score.sum(-1, True) + 1e-9
+        softmax_score = score / sum_score.expand_as(score)
+        outputs = torch.bmm(softmax_score, v)
+        return outputs
+
+
+class multi_head_attention_layer(nn.Module):
+    def __init__(self, input_size, n_hidden, n_head):
+        """
+        The multi-head attention operation in transformer
+        * input_size [int]: embedding dim or the last dim of the input
+        * n_hidden [int]: number of hidden weight matrix nodes
+        * n_head [int]: number of context attentions
+        """
+        super(multi_head_attention_layer, self).__init__()
+        self.input_size = input_size
+        self.attention = nn.ModuleList(
+            [context_attention_layer(input_size, n_hidden) for _ in range(n_head)]
+        )
+        self.gather = nn.Linear(n_hidden * n_head, input_size, bias=False)
+
+    def forward(self, inputs):
+        """
+        Forward calculation of the layer
+        * inputs [tensor]: input tensor (batch_size * max_seq_len * input_size)
+        - outputs [tensor]: expression after attention (batch_size * max_seq_len * input_size)
+        """
+        if inputs.dim() != 3 or inputs.size(-1) != self.input_size:
+            raise ValueError("! Wrong dimemsion of the inputs parameters.")
+
+        outputs = torch.cat([att(inputs) for att in self.attention], -1)
+        outputs = self.gather(outputs)
+        return outputs
+
+
+class transformer_layer(nn.Module):
+    def __init__(self, input_size, n_hidden, n_head):
+        """
+        The whole transformer layer
+        * input_size [int]: embedding dim or the last dim of the input
+        * n_hidden [int]: number of hidden weight matrix nodes
+        * n_head [int]: number of attentions
+        """
+        super(transformer_layer, self).__init__()
+        self.attention = multi_head_attention_layer(input_size, n_hidden, n_head)
+        self.norm_1 = nn.LayerNorm(input_size)
+        self.feed_forward = nn.Sequential(
+            nn.Linear(input_size, 4 * input_size),
+            nn.ReLU(),
+            nn.Linear(4 * input_size, input_size)
+        )
+        self.norm_2 = nn.LayerNorm(input_size)
+
+    def forward(self, inputs, seq_len=None, get_index=None):
+        """
+        Forward calculation of the layer
+        * inputs [tensor]: input tensor (batch_size * max_seq_len * input_size)
+        * seq_len [tensor]: sequence length (batch_size,)
+        * get_index [int/list/tuple]: give only the value of the index (None means all)
+        - outputs [tensor]: attention output (batch_size * max_seq_len * input_size)
+        """
+        now_batch_size, max_seq_len, _ = inputs.size()
+        outputs = self.norm_1(self.attention(inputs) + inputs)
+        outputs = self.norm_2(self.feed_forward(outputs) + outputs)
+
+        if seq_len is not None:
+            seq_len = seq_len.type_as(outputs.data)
+            query = torch.arange(0, max_seq_len, device=inputs.device).unsqueeze(1).float()
+            mask = torch.lt(query, seq_len.unsqueeze(0)).float().transpose(0, 1)
+            mask = mask.contiguous().view(now_batch_size, max_seq_len, 1)
+            outputs = outputs * mask
+
+        if get_index is not None:
+            outputs = outputs[:, get_index, :]
+
         return outputs

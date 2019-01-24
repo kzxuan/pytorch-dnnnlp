@@ -21,6 +21,7 @@ Version 0.11 by KzXuan
   | 参数名         | 类型  | 默认值 | 说明                                                  |
   | -------------- | ----- | ------ | ----------------------------------------------------- |
   | n_gpu          | int   | 1      | 使用GPU的数量（0表示不使用GPU加速）                   |
+  | data_shuffle   | bool  | False  | 是否打乱数据进行训练或测试                            |
   | GRU_enable     | bool  | True   | 使用GRU或LSTM                                         |
   | bi_direction   | bool  | True   | 双向/单向RNN                                          |
   | n_layer        | int   | 1      | 每个层次的RNN层数                                     |

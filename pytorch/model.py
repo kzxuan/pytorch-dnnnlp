@@ -3,7 +3,7 @@
 """
 Some common models for deep neural network
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2019.01.23
+Last update: KzXuan, 2019.01.26
 """
 import torch
 import numpy as np
@@ -58,7 +58,7 @@ class CNN_model(nn.Module, base.base):
 
 
 class RNN_model(nn.Module, base.base):
-    def __init__(self, emb_matrix, args, mode='classify'):
+    def __init__(self, emb_matrix, args, n_hierarchy=1, mode='classify'):
         """
         Initilize the model data and layer
         * emb_matrix [np.array]: word embedding matrix
@@ -68,6 +68,7 @@ class RNN_model(nn.Module, base.base):
         nn.Module.__init__(self)
         base.base.__init__(self, args)
 
+        self.n_hierarchy = n_hierarchy
         self.mode = mode
         self.bi_direction_num = 2 if self.bi_direction else 1
 
@@ -133,12 +134,11 @@ class RNN_model(nn.Module, base.base):
 
 
 class transformer_model(nn.Module, base.base):
-    def __init__(self, emb_matrix, args, n_head):
+    def __init__(self, emb_matrix, args):
         """
         Initilize the model data and layer
         * emb_matrix [np.array]: word embedding matrix
         * args [dict]: all model arguments
-        * n_head [int]: number of attentions
         """
         nn.Module.__init__(self)
         base.base.__init__(self, args)
@@ -147,9 +147,9 @@ class transformer_model(nn.Module, base.base):
         self.pos_emb_mat = layer.positional_embedding_layer(self.emb_dim)
         self.drop_out = nn.Dropout(self.drop_prob)
         self.transformer = nn.ModuleList(
-            [layer.transformer_layer(2 *self.emb_dim, self.n_hidden, n_head) for _ in range(self.n_layer)]
+            [layer.transformer_layer(self.emb_dim, self.n_hidden, self.n_head) for _ in range(self.n_layer)]
         )
-        self.predict = layer.softmax_layer(2 * self.emb_dim, self.n_class)
+        self.predict = layer.softmax_layer(self.emb_dim, self.n_class)
 
     def forward(self, inputs, seq_len):
         """
@@ -163,14 +163,12 @@ class transformer_model(nn.Module, base.base):
         seq_len = torch.reshape(seq_len, [-1])
 
         outputs = self.drop_out(inputs)
-        outputs = torch.cat((outputs, self.pos_emb_mat(outputs).expand_as(outputs)), -1)
+        # outputs = torch.cat((outputs, self.pos_emb_mat(outputs).expand_as(outputs)), -1)
 
-        if seq_len is not None:
-            seq_len = seq_len.type_as(outputs.data)
-            query = torch.arange(0, max_seq_len, device=inputs.device).unsqueeze(1).float()
-            mask = torch.lt(query, seq_len.unsqueeze(0)).float().transpose(0, 1)
-            mask = mask.contiguous().view(now_batch_size, max_seq_len, 1)
-            outputs = outputs * mask
+        # if seq_len is not None:
+        #     mask = layer.get_mask(inputs, seq_len)
+        #     mask = mask.contiguous().view(now_batch_size, max_seq_len, 1)
+        #     outputs = outputs * mask
 
         for nl in range(self.n_layer - 1):
             outputs = self.transformer[nl](outputs, seq_len, get_index=None)

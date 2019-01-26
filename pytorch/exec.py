@@ -3,7 +3,7 @@
 """
 Execution functions for deep neural models
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2018.12.23
+Last update: KzXuan, 2019.01.26
 """
 import torch
 import numpy as np
@@ -103,7 +103,7 @@ class exec(base.base):
             ptable = table_print(self.col, self.width, sep="vertical")
         if verbose == 1:
             per = percent("* Run model", self.iter_times)
-        for it in range(1, self.iter_timeso + 1):
+        for it in range(1, self.iter_times + 1):
             loss = self._run_train(train_loader)
             pred, ty = self._run_test(test_loader)
             result = predict_analysis(ty, pred, one_hot=True, simple=True, get_prf=self.prf)
@@ -232,8 +232,9 @@ class RNN_classify(exec):
         * class_name [list]: name of each class
         """
         exec.__init__(self, data_dict, args, class_name)
+        self.n_hierarchy = len(data_dict['len'])
 
-        self.model = model.RNN_model(emb_matrix, args, mode='classify')
+        self.model = model.RNN_model(emb_matrix, args, self.n_hierarchy, mode='classify')
         self._model_to_cuda()
         self.model_init = deepcopy(self.model.state_dict())
         self.optimizer = torch.optim.Adam(
@@ -252,10 +253,11 @@ class RNN_sequence(exec):
         * vote [bool]: vote for duplicate data (need 'id'/'tid' in data_dict)
         * class_name [list]: name of each class
         """
-        self.vote = vote
         exec.__init__(self, data_dict, args, class_name)
+        self.vote = vote
+        self.n_hierarchy = len(data_dict['len'])
 
-        self.model = model.RNN_model(emb_matrix, args, mode='sequence')
+        self.model = model.RNN_model(emb_matrix, args, self.n_hierarchy, mode='sequence')
         self._model_to_cuda()
         self.model_init = deepcopy(self.model.state_dict())
         self.optimizer = torch.optim.Adam(
@@ -308,19 +310,17 @@ class RNN_sequence(exec):
 
 
 class transformer_classify(exec):
-    def __init__(self, data_dict, emb_matrix=None, args=None,
-                 n_head=8, class_name=None):
+    def __init__(self, data_dict, emb_matrix=None, args=None, class_name=None):
         """
         Initilize the CNN classification model
         * data_dict [dict]: use key like 'x'/'vx'/'ty'/'lq' to store the data
         * emb_matrix [np.array]: word embedding matrix (need emb_type!=None)
         * args [dict]: all model arguments
-        * n_head [int]: number of context attentions
         * class_name [list]: name of each class
         """
         exec.__init__(self, data_dict, args, class_name)
 
-        self.model = model.transformer_model(emb_matrix, args, n_head)
+        self.model = model.transformer_model(emb_matrix, args)
         self._model_to_cuda()
         self.model_init = deepcopy(self.model.state_dict())
         self.optimizer = torch.optim.Adam(

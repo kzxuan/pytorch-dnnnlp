@@ -11,7 +11,14 @@ Version 0.11
       添加函数RM.init_weight()，为RNN模型提供权重初始化
     3 添加参数base.data_shuffle()，支持打乱数据操作
   * 4 支持Transformer
+      添加参数base.n_head()
+      创建多头注意力层layer.multi_head_attention_layer()
+      创建位置信息层layer.positional_embedding_layer()
+      创建Transformer层layer.transformer_layer()
+      创建Transformer模型model.transformer_model()
+      创建Transformer模型执行函数exec.transformer_classify()
     5 调整RNN.embedding_layer()至layer.embedding_layer()
+    6 创建函数layer.get_mask()，提取mask相关部分并更新相关层和模型
 
 Version 0.10
   * 1 代码结构调整，拆分为base/layer/model/exec四个模块

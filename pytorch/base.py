@@ -3,7 +3,7 @@
 """
 Some base modules for deep neural network
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2019.01.23
+Last update: KzXuan, 2019.01.26
 """
 import torch
 import argparse
@@ -18,20 +18,13 @@ def default_args(data_dict=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_gpu", default=1, type=int, help="number of GPUs for running")
     parser.add_argument("--data_shuffle", default=False, type=bool, help="shuffle data")
-    parser.add_argument("--GRU_enable", default=True, type=bool, help="use LSTM or GRU")
-    parser.add_argument("--bi_direction", default=True, type=bool, help="bi direction choice")
-    parser.add_argument("--n_layer", default=1, type=int, help="hidden layer number")
-    parser.add_argument("--use_attention", default=True, type=bool, help="use attention or not")
-
     parser.add_argument("--emb_type", default=None, type=str, help="embedding type")
     if data_dict is not None:
         parser.add_argument("--emb_dim", default=data_dict['x'].shape[-1], type=int, help="embedding dimension")
         parser.add_argument("--n_class", default=data_dict['y'].shape[-1], type=int, help="classify classes number")
-        parser.add_argument("--n_hierarchy", default=len(data_dict['len']), type=int, help="RNN hierarchy number")
     else:
         parser.add_argument("--emb_dim", default=300, type=int, help="embedding dimension")
         parser.add_argument("--n_class", default=2, type=int, help="classify classes number")
-        parser.add_argument("--n_hierarchy", default=1, type=int, help="RNN hierarchy number")
 
     parser.add_argument("--n_hidden", default=50, type=int, help="hidden layer nodes")
     parser.add_argument("--learning_rate", default=0.01, type=float, help="learning rate")
@@ -41,6 +34,13 @@ def default_args(data_dict=None):
     parser.add_argument("--display_step", default=2, type=int, help="display inteval")
     parser.add_argument("--drop_prob", default=0.1, type=float, help="drop out ratio")
     parser.add_argument("--score_standard", default='Acc', type=str, help="score standard")
+
+    parser.add_argument("--GRU_enable", default=True, type=bool, help="use LSTM or GRU")
+    parser.add_argument("--bi_direction", default=True, type=bool, help="bi direction choice")
+    parser.add_argument("--use_attention", default=True, type=bool, help="use attention or not")
+    parser.add_argument("--n_layer", default=1, type=int, help="hidden layer number")
+    parser.add_argument("--n_head", default=8, type=int, help="attention head number")
+
     args = parser.parse_args()
     return args
 
@@ -51,14 +51,9 @@ class base(object):
         Initilize the model data
         * n_gpu [int]: number of GPUs for running
         * data_shuffle [bool]: shuffle data
-        * GRU_enable [bool]: use LSTM or GRU model
-        * bi_direction [bool]: use bi-direction model or not
-        * n_layer [int]: hidden layer number
-        * use_attention [bool]: use attention or not
         * emb_type [str]: use None/'const'/'variable'/'random'
         * emb_dim [int]: embedding dimension
         * n_class [int]: number of object classify classes
-        * n_hierarchy [int]: number of RNN hierarchies
         * n_hidden [int]: number of hidden layer nodes
         * learning_rate [float]: learning rate
         * l2_reg [float]: L2 regularization parameter
@@ -67,17 +62,17 @@ class base(object):
         * display_step [int]: the interval iterations to display
         * drop_prob [float]: drop out ratio
         * score_standard [str]: use 'Ma-P'/'C1-R'/'C1-F'/'Acc'
+        * GRU_enable [bool]: use LSTM or GRU model
+        * bi_direction [bool]: use bi-direction model or not
+        * use_attention [bool]: use attention or not
+        * n_layer [int]: hidden layer number
+        * n_head [int]: attention head number
         """
         self.n_gpu = args.n_gpu
         self.data_shuffle = args.data_shuffle
-        self.GRU_enable = args.GRU_enable
-        self.bi_direction = args.bi_direction
-        self.n_layer = args.n_layer
-        self.use_attention = args.use_attention
         self.emb_type = args.emb_type
         self.emb_dim = args.emb_dim
         self.n_class = args.n_class
-        self.n_hierarchy = args.n_hierarchy
         self.n_hidden = args.n_hidden
         self.learning_rate = args.learning_rate
         self.l2_reg = args.l2_reg
@@ -86,6 +81,11 @@ class base(object):
         self.display_step = args.display_step
         self.drop_prob = args.drop_prob
         self.score_standard = args.score_standard
+        self.GRU_enable = args.GRU_enable
+        self.bi_direction = args.bi_direction
+        self.use_attention = args.use_attention
+        self.n_layer = args.n_layer
+        self.n_head = args.n_head
 
     def attributes_from_dict(self, args):
         """

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Use LSTM sequence model
-Last update: KzXuan, 2018.12.23
+Last update: KzXuan, 2019.01.26
 """
 import numpy as np
 import word_vector as wv
@@ -33,8 +33,6 @@ sl.stop()
 ef.print_shape(data_dict)
 
 args = default_args(data_dict)
-args.GRU_enable = True
-args.use_attention = True
 args.emb_type = 'const'
 args.emb_dim = w2v.vector_size
 args.n_hidden = 50
@@ -44,6 +42,8 @@ args.batch_size = 64
 args.iter_times = 20
 args.display_step = 1
 args.drop_porb = 0.1
+args.GRU_enable = True
+args.use_attention = True
 
 class_name = ['support', 'deny', 'query', 'comment']
 nn = RNN_sequence(data_dict, emb_mat, args, vote=True, class_name=class_name)

@@ -2,7 +2,7 @@
 
 Version 0.11 by KzXuan
 
-**包含了PyTorch实现的简单DNN模型（CNN & RNN）用于NLP领域的分类及序列标注任务。**
+**包含了PyTorch实现的简单DNN模型（CNN, RNN, Transformer）用于NLP领域的分类及序列标注任务。**
 
 相比TensorFlow的静态图模型，PyTorch拥有更为原生的Python语言写法，默认支持动态建图。
 
@@ -18,26 +18,26 @@ Version 0.11 by KzXuan
 
 * 超参数说明：
 
-  | 参数名         | 类型  | 默认值 | 说明                                                  |
-  | -------------- | ----- | ------ | ----------------------------------------------------- |
-  | n_gpu          | int   | 1      | 使用GPU的数量（0表示不使用GPU加速）                   |
-  | data_shuffle   | bool  | False  | 是否打乱数据进行训练或测试                            |
-  | GRU_enable     | bool  | True   | 使用GRU或LSTM                                         |
-  | bi_direction   | bool  | True   | 双向/单向RNN                                          |
-  | n_layer        | int   | 1      | 每个层次的RNN层数                                     |
-  | use_attention  | bool  | Ture   | 是否使用注意力机制（默认在每一层次的RNN上添加）       |
-  | emb_type       | str   | None   | 使用None/'const'/'variable'/'random'表示Embedding模式 |
-  | emb_dim        | int   | 300    | Embedding维度（输入为特征时表示特征的维度）           |
-  | n_class        | int   | 2      | 分类的目标类数                                        |
-  | n_hierarchy    | int   | 1      | RNN模型的层次数                                       |
-  | n_hidden       | int   | 50     | LSTM/GRU的隐层节点数，或CNN的输出通道数               |
-  | learning_rate  | float | 0.01   | 学习率                                                |
-  | l2_reg         | float | 1e-6   | L2正则                                                |
-  | batch_size     | int   | 128    | 批量大小                                              |
-  | iter_times     | int   | 30     | 迭代次数                                              |
-  | display_step   | int   | 2      | 迭代过程中显示输出的间隔迭代次数                      |
-  | drop_prob      | float | 0.1    | Dropout比例                                           |
-  | score_standard | str   | 'Acc'  | 使用'Ma-F'/…/'C1-R'/'C1-F'/'Acc'等设定模型评判标准    |
+  | 参数名         | 类型  | 默认值 | 说明                                                  | 模型  |
+  | -------------- | ----- | ------ | ----------------------------------------------------- | ----- |
+  | n_gpu          | int   | 1      | 使用GPU的数量（0表示不使用GPU加速）                   | C R T |
+  | data_shuffle   | bool  | False  | 是否打乱数据进行训练或测试                            | C R T |
+  | emb_type       | str   | None   | 使用None/'const'/'variable'/'random'表示Embedding模式 | C R T |
+  | emb_dim        | int   | 300    | Embedding维度（输入为特征时表示特征的维度）           | C R T |
+  | n_class        | int   | 2      | 分类的目标类数                                        | C R T |
+  | n_hidden       | int   | 50     | LSTM/GRU的隐层节点数，或CNN的输出通道数               | C R T |
+  | learning_rate  | float | 0.01   | 学习率                                                | C R T |
+  | l2_reg         | float | 1e-6   | L2正则                                                | C R T |
+  | batch_size     | int   | 128    | 批量大小                                              | C R T |
+  | iter_times     | int   | 30     | 迭代次数                                              | C R T |
+  | display_step   | int   | 2      | 迭代过程中显示输出的间隔迭代次数                      | C R T |
+  | drop_prob      | float | 0.1    | Dropout比例                                           | C R T |
+  | score_standard | str   | 'Acc'  | 使用'Ma-F'/…/'C1-R'/'C1-F'/'Acc'等设定模型评判标准    | C R T |
+  | GRU_enable     | bool  | True   | 使用GRU或LSTM                                         | R     |
+  | bi_direction   | bool  | True   | 双向/单向RNN                                          | R     |
+  | use_attention  | bool  | Ture   | 是否使用注意力机制（默认在每一层次的RNN上添加）       | R     |
+  | n_layer        | int   | 1      | 每个层次的RNN层数或Transformer的层数                  | R T   |
+  | n_head         | Int   | 8      | Transformer模型的注意力头数                           | T     |
 
 * 数据要求：
 
@@ -72,6 +72,10 @@ Version 0.11 by KzXuan
 
    封装的类都可以脱离项目提供的构造环境来单独运行，且均提供参数初始化函数，需要在类实例化后调用。
 
+   * Positional_embedding_layer(emb_dim, max_len=512)
+
+     位置Embedding层，为序列创建位置信息
+
    * self_attention_layer(n_hidden)
 
      自注意力机制层，接受隐层节点数n_hidden参数。
@@ -96,6 +100,18 @@ Version 0.11 by KzXuan
 
      简单的Softmax层/全连接层。
 
+   * multi_head_attention_layer(input_size, n_hidden, n_head)
+
+     多头注意力层，Transformer内的注意力操作，支持任意数值的n_head数。
+
+   * transformer_layer(input_size, n_hidden, n_head)
+
+     封装的Transformer层，支持多头注意力、任意位提取输出。
+
+     调用时需要以列表形式传入三个inputs值，分别对应query/key/value且最后一维要和列表input_size相对应，当三个值相同时，可以只传入单个input_size和单个Tensor。
+
+     调用时可以选择提取序列输出的某一个位置作为整个transformer层的输出。
+
 3. 封装模型 **([model.py](./pytorch/model.py))**
 
    封装的模型不可以脱离项目提供的构造环境运行，均提供参数初始化函数，需要在类实例化后调用。
@@ -107,6 +123,10 @@ Version 0.11 by KzXuan
    * RNN_model(emb_matrix, args, mode='classify')
 
      常规RNN层次模型的封装，支持多层次的分类或序列标注，参数mode可选"classify"/"sequence"，模型返回最后的预测结果。
+
+   * transformer_model(emb_matrix, args)
+
+     常规transformer模型的封装，支持多层transformer的叠加，通过超参数n_layer进行层数控制，模型返回最后的预测结果。
 
 4. 运行模块 **([exec.py](./pytorch/exec.py))**
 
@@ -131,6 +151,10 @@ Version 0.11 by KzXuan
    * RNN_sequence(data_dict, emb_matrix=None, args=None, vote=False, class_name=None)
 
      **使用RNN序列标注的执行模块。**
+
+   * transformer_classify(data_dict, emb_matrix=None, args=None, class_name=None)
+
+     **使用transformer分类的执行模块。**
 
 </br>
 
@@ -176,7 +200,7 @@ Version 0.11 by KzXuan
 
   ```python
   args.score_standard = 'C1-F'
-  nn = RNN_classify(data_dict, emb_mat, args, class_name=class_name)
+  nn = transformer_classify(data_dict, emb_mat, args, class_name=class_name)
   params_search = {"l2_reg": [1e-3, 1e-5], "batch_size": [64, 128]}
   nn.grid_search(nn.train_test, params_search=params_search)
   ```

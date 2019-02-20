@@ -13,8 +13,8 @@ Version 0.11 by KzXuan
 #### 模型说明
 
 * 环境：
-  * Python 3.5/3.6/3.7
-  * PyTorch 0.4.1/1.0.0
+  * Python >= 3/5
+  * PyTorch >= 0.4.1
 
 * 超参数说明：
 

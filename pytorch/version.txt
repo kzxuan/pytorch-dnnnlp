@@ -1,6 +1,9 @@
 PyTorch库编写的神经网络模型
 Ubuntu 16.04 & PyTorch 1.0
 
+Version 0.12
+    1
+
 Version 0.11
   * 1 逻辑优化和速度优化，降低50%系统内存占用空间并提升超过2倍的运行速度
       修复数据读取异常消耗内存的问题
@@ -19,6 +22,7 @@ Version 0.11
       创建Transformer模型执行函数exec.transformer_classify()
     5 调整RNN.embedding_layer()至layer.embedding_layer()
     6 创建函数layer.get_mask()，提取mask相关部分并更新相关层和模型
+    7 修复layer.LSTM_layer()中关于0矩阵截取和填充的问题
 
 Version 0.10
   * 1 代码结构调整，拆分为base/layer/model/exec四个模块

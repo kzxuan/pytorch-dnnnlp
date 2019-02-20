@@ -3,7 +3,7 @@
 """
 Execution functions for deep neural models
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2019.01.26
+Last update: KzXuan, 2019.02.19
 """
 import torch
 import numpy as np

@@ -3,7 +3,7 @@
 """
 Some common layers for deep neural network
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2019.01.26
+Last update: KzXuan, 2019.02.19
 """
 import math
 import torch
@@ -245,6 +245,7 @@ class LSTM_layer(nn.Module):
             sort_seq_len = torch.index_select(sort_seq_len, 0, torch.nonzero(sort_seq_len).contiguous().view(-1))
             n_pad = sort_index.size(0) - sort_seq_len.size(0)
             inputs = torch.index_select(inputs, 0, sort_index[:sort_seq_len.size(0)])
+            now_batch_size, max_seq_len, _ = inputs.size()
             inputs = nn.utils.rnn.pack_padded_sequence(inputs, sort_seq_len, batch_first=True)
 
         self.rnn.flatten_parameters()
@@ -367,10 +368,10 @@ class transformer_layer(nn.Module):
         self.attention = multi_head_attention_layer(input_size, n_hidden, n_head)
         self.norm_1 = nn.LayerNorm(input_size[-1])
         self.feed_forward = nn.Sequential(
-            nn.Linear(input_size[-1], 4 * input_size[-1]),
+            nn.Linear(input_size[-1], input_size[-1]),
             nn.ReLU(),
             nn.Dropout(0.1),
-            nn.Linear(4 * input_size[-1], input_size[-1]),
+            nn.Linear(input_size[-1], input_size[-1]),
         )
         self.norm_2 = nn.LayerNorm(input_size[-1])
 

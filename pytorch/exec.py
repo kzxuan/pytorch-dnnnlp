@@ -3,7 +3,7 @@
 """
 Execution functions for deep neural models
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2019.02.19
+Last update: KzXuan, 2019.03.12
 """
 import torch
 import numpy as np
@@ -30,7 +30,7 @@ class exec(base.base):
 
         self.data_dict = data_dict
         self.class_name = class_name
-        self.device = torch.device("cuda:0") if self.n_gpu else torch.device("cpu")
+        self.init_device = torch.device("cuda:0") if self.space_turbo else torch.device("cpu")
         self._init_display()
 
     def _model_to_cuda(self):
@@ -60,6 +60,8 @@ class exec(base.base):
         self.model.train()
         losses = 0.0
         for step, (x, y, *lq) in enumerate(train_loader):
+            if not self.space_turbo and self.n_gpu:
+                x, y, lq = x.cuda(), y.cuda(), [ele.cuda() for ele in lq]
             pred = self.model(x, *lq, **model_params)
             loss = - torch.sum(y.float() * torch.log(pred)) / torch.sum(lq[-1]).float()
             losses += loss.cpu().data.numpy()
@@ -80,6 +82,8 @@ class exec(base.base):
         self.model.eval()
         preds, tys = torch.FloatTensor(), torch.IntTensor()
         for step, (tx, ty, *tlq) in enumerate(test_loader):
+            if not self.space_turbo and self.n_gpu:
+                tx, ty, tlq = tx.cuda(), ty.cuda(), [ele.cuda() for ele in tlq]
             pred = self.model(tx, *tlq, **model_params)
 
             preds = torch.cat((preds, pred.cpu()))
@@ -127,14 +131,14 @@ class exec(base.base):
         - best_result [dict]: the best result with key 'P'/'R'/'F'/'Acc'
         """
         train_loader = self.create_data_loader(
-            torch.tensor(self.data_dict['x'], dtype=torch.float, device=self.device),
-            torch.tensor(self.data_dict['y'], dtype=torch.int, device=self.device),
-            *[torch.tensor(ele, dtype=torch.int, device=self.device) for ele in self.data_dict['len']]
+            torch.tensor(self.data_dict['x'], dtype=torch.float, device=self.init_device),
+            torch.tensor(self.data_dict['y'], dtype=torch.int, device=self.init_device),
+            *[torch.tensor(ele, dtype=torch.int, device=self.init_device) for ele in self.data_dict['len']]
         )
         test_loader = self.create_data_loader(
-            torch.tensor(self.data_dict['tx'], dtype=torch.float, device=self.device),
-            torch.tensor(self.data_dict['ty'], dtype=torch.int, device=self.device),
-            *[torch.tensor(ele, dtype=torch.int, device=self.device) for ele in self.data_dict['tlen']]
+            torch.tensor(self.data_dict['tx'], dtype=torch.float, device=self.init_device),
+            torch.tensor(self.data_dict['ty'], dtype=torch.int, device=self.init_device),
+            *[torch.tensor(ele, dtype=torch.int, device=self.init_device) for ele in self.data_dict['tlen']]
         )
 
         best_iter, best_ty, best_pred, best_result = self._run(train_loader, test_loader, verbose)
@@ -174,14 +178,14 @@ class exec(base.base):
 
         for count, train, test in self.mod_fold(self.data_dict['x'].shape[0], fold=fold):
             train_loader = self.create_data_loader(
-                torch.tensor(self.data_dict['x'][train], dtype=torch.float, device=self.device),
-                torch.tensor(self.data_dict['y'][train], dtype=torch.int, device=self.device),
-                *[torch.tensor(ele[train], dtype=torch.int, device=self.device) for ele in self.data_dict['len']]
+                torch.tensor(self.data_dict['x'][train], dtype=torch.float, device=self.init_device),
+                torch.tensor(self.data_dict['y'][train], dtype=torch.int, device=self.init_device),
+                *[torch.tensor(ele[train], dtype=torch.int, device=self.init_device) for ele in self.data_dict['len']]
             )
             test_loader = self.create_data_loader(
-                torch.tensor(self.data_dict['x'][test], dtype=torch.float, device=self.device),
-                torch.tensor(self.data_dict['y'][test], dtype=torch.int, device=self.device),
-                *[torch.tensor(ele[test], dtype=torch.int, device=self.device) for ele in self.data_dict['len']]
+                torch.tensor(self.data_dict['x'][test], dtype=torch.float, device=self.init_device),
+                torch.tensor(self.data_dict['y'][test], dtype=torch.int, device=self.init_device),
+                *[torch.tensor(ele[test], dtype=torch.int, device=self.init_device) for ele in self.data_dict['len']]
             )
 
             if verbose > 0:

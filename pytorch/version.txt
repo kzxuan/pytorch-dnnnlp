@@ -2,7 +2,11 @@ PyTorch库编写的神经网络模型
 Ubuntu 16.04 & PyTorch 1.0
 
 Version 0.12
-    1
+    1 为RNN提供tanh/LSTM/GRU三种模型支持
+      更名RNN层layer.LSTM_layer为layer.RNN_layer
+      更名参数base.GRU_enable为base.rnn_type
+      修复layer.RNN_layer()中关于0矩阵截取和填充的问题
+    2 提供参数base.space_turbo控制GPU空间换时间的加速功能
 
 Version 0.11
   * 1 逻辑优化和速度优化，降低50%系统内存占用空间并提升超过2倍的运行速度
@@ -22,7 +26,6 @@ Version 0.11
       创建Transformer模型执行函数exec.transformer_classify()
     5 调整RNN.embedding_layer()至layer.embedding_layer()
     6 创建函数layer.get_mask()，提取mask相关部分并更新相关层和模型
-    7 修复layer.LSTM_layer()中关于0矩阵截取和填充的问题
 
 Version 0.10
   * 1 代码结构调整，拆分为base/layer/model/exec四个模块

@@ -3,7 +3,7 @@
 """
 Some common models for deep neural network
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2019.02.19
+Last update: KzXuan, 2019.03.12
 """
 import torch
 import numpy as np
@@ -75,18 +75,18 @@ class RNN_model(nn.Module, base.base):
         self.emb_mat = layer.embedding_layer(emb_matrix, self.emb_type)
         self.drop_out = nn.Dropout(self.drop_prob)
 
-        rnn_params = (self.n_hidden, self.n_layer, self.drop_prob, self.bi_direction, self.GRU_enable)
-        self.rnn = nn.ModuleList([layer.LSTM_layer(self.emb_dim, *rnn_params)])
+        rnn_params = (self.n_hidden, self.n_layer, self.drop_prob, self.bi_direction, self.rnn_type)
+        self.rnn = nn.ModuleList([layer.RNN_layer(self.emb_dim, *rnn_params)])
         self.att = nn.ModuleList([layer.self_attention_layer(self.bi_direction_num * self.n_hidden)])
         for _ in range(self.n_hierarchy - 1):
-            self.rnn.append(layer.LSTM_layer(self.bi_direction_num * self.n_hidden, *rnn_params))
+            self.rnn.append(layer.RNN_layer(self.bi_direction_num * self.n_hidden, *rnn_params))
             if self.use_attention:
                 self.att.append(layer.self_attention_layer(self.bi_direction_num * self.n_hidden))
         self.predict = layer.softmax_layer(self.n_hidden * self.bi_direction_num, self.n_class)
 
     def init_weights(self):
         for m in self.modules():
-            if isinstance(m, layer.LSTM_layer):
+            if isinstance(m, layer.RNN_layer):
                 m.init_weights()
             if isinstance(m, layer.self_attention_layer):
                 m.init_weights()

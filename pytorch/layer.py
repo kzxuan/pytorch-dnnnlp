@@ -3,7 +3,7 @@
 """
 Some common layers for deep neural network
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2019.02.19
+Last update: KzXuan, 2019.03.12
 """
 import math
 import torch
@@ -186,9 +186,9 @@ class CNN_layer(nn.Module):
         return outputs
 
 
-class LSTM_layer(nn.Module):
+class RNN_layer(nn.Module):
     def __init__(self, input_size, n_hidden, n_layer, drop_prob,
-                 bi_direction=True, GRU_enable=False):
+                 bi_direction=True, mode="LSTM"):
         """
         LSTM layer
         * input_size [int]: embedding dim or the last dim of the input
@@ -197,14 +197,18 @@ class LSTM_layer(nn.Module):
         * n_hidden [int]: number of hidden layer nodes
         * drop_prob [float]: drop out ratio
         * bi_direction [bool]: use bi-direction model or not
-        * GRU_enable [bool]: use LSTM or GRU model
+        * mode [str]: use 'tanh'/'LSTM'/'GRU' for core model
         """
-        super(LSTM_layer, self).__init__()
+        super(RNN_layer, self).__init__()
+        mode_model = {'tanh': nn.RNN, 'LSTM': nn.LSTM, 'GRU': nn.GRU}
         self.n_hidden = n_hidden
         self.n_layer = n_layer
         self.bi_direction_num = 2 if bi_direction else 1
-        self.GRU_enable = GRU_enable
-        model = nn.GRU if GRU_enable else nn.LSTM
+        self.mode = mode
+        try:
+            model = mode_model[mode]
+        except:
+            raise ValueError("! Parameter 'mode' only receives 'tanh'/'LSTM'/'GRU'.")
         self.rnn = model(
             input_size=input_size,
             hidden_size=n_hidden,
@@ -249,9 +253,9 @@ class LSTM_layer(nn.Module):
             inputs = nn.utils.rnn.pack_padded_sequence(inputs, sort_seq_len, batch_first=True)
 
         self.rnn.flatten_parameters()
-        if self.GRU_enable:
+        if self.mode == 'tanh' or self.mode == 'GRU':
             outputs, h_last = self.rnn(inputs)  # h_last: (n_layer*bi_direction) * batch_size * n_hidden
-        else:
+        elif self.mode == 'LSTM':
             outputs, (h_last, _) = self.rnn(inputs)  # h_last: (n_layer*bi_direction) * batch_size * n_hidden
         if out_type == 'all':
             if seq_len is not None:
@@ -323,8 +327,12 @@ class multi_head_attention_layer(nn.Module):
         self.n_hidden = n_hidden
         self.n_head = n_head
         self.attention = nn.ModuleList(
-            [nn.Linear(isize, n_hidden * n_head, bias=False) for isize in input_size]
+            [nn.Linear(isize, n_hidden * n_head) for isize in input_size]
         )
+        for m in self.attention.modules():
+            if isinstance(m, nn.Linear):
+                # nn.init.normal_(m.weight, mean=0, std=np.sqrt(2.0 / (input_size[-1] + n_hidden)))
+                nn.init.xavier_uniform_(m.weight, 0.01)
         self.gather = nn.Linear(n_hidden * n_head, input_size[-1], bias=False)
 
     def forward(self, inputs):

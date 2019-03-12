@@ -3,7 +3,7 @@
 """
 Some base modules for deep neural network
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2019.02.19
+Last update: KzXuan, 2019.03.12
 """
 import torch
 import argparse
@@ -17,6 +17,7 @@ import torch.nn.functional as F
 def default_args(data_dict=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_gpu", default=1, type=int, help="number of GPUs for running")
+    parser.add_argument("--space_turbo", default=True, type=bool, help="use more space to fasten")
     parser.add_argument("--data_shuffle", default=False, type=bool, help="shuffle data")
     parser.add_argument("--emb_type", default=None, type=str, help="embedding type")
     if data_dict is not None:
@@ -35,7 +36,7 @@ def default_args(data_dict=None):
     parser.add_argument("--drop_prob", default=0.1, type=float, help="drop out ratio")
     parser.add_argument("--score_standard", default='Acc', type=str, help="score standard")
 
-    parser.add_argument("--GRU_enable", default=True, type=bool, help="use LSTM or GRU")
+    parser.add_argument("--rnn_type", default='LSTM', type=str, help="use tanh, LSTM or GRU")
     parser.add_argument("--bi_direction", default=True, type=bool, help="bi direction choice")
     parser.add_argument("--use_attention", default=True, type=bool, help="use attention or not")
     parser.add_argument("--n_layer", default=1, type=int, help="hidden layer number")
@@ -50,6 +51,7 @@ class base(object):
         """
         Initilize the model data
         * n_gpu [int]: number of GPUs for running
+        * space_turbo [bool]: use more space to fasten
         * data_shuffle [bool]: shuffle data
         * emb_type [str]: use None/'const'/'variable'/'random'
         * emb_dim [int]: embedding dimension
@@ -62,13 +64,14 @@ class base(object):
         * display_step [int]: the interval iterations to display
         * drop_prob [float]: drop out ratio
         * score_standard [str]: use 'Ma-P'/'C1-R'/'C1-F'/'Acc'
-        * GRU_enable [bool]: use LSTM or GRU model
+        * rnn_type [str]: use tanh, LSTM or GRU
         * bi_direction [bool]: use bi-direction model or not
         * use_attention [bool]: use attention or not
         * n_layer [int]: hidden layer number
         * n_head [int]: attention head number
         """
         self.n_gpu = args.n_gpu
+        self.space_turbo = args.space_turbo
         self.data_shuffle = args.data_shuffle
         self.emb_type = args.emb_type
         self.emb_dim = args.emb_dim
@@ -81,7 +84,7 @@ class base(object):
         self.display_step = args.display_step
         self.drop_prob = args.drop_prob
         self.score_standard = args.score_standard
-        self.GRU_enable = args.GRU_enable
+        self.rnn_type = args.rnn_type
         self.bi_direction = args.bi_direction
         self.use_attention = args.use_attention
         self.n_layer = args.n_layer

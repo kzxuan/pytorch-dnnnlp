@@ -22,7 +22,7 @@ Version 0.12 by KzXuan
   | -------------- | ----- | ------ | ----------------------------------------------------- | ----- |
   | n_gpu          | int   | 1      | 使用GPU的数量（0表示不使用GPU加速）                   | C R T |
   | space_turbo    | bool  | True   | 利用更多的GPU显存进行加速                             | C R T |
-  | data_shuffle   | bool  | False  | 是否打乱数据进行训练或测试                            | C R T |
+  | data_shuffle   | bool  | Ture   | 是否打乱数据进行训练或测试                            | C R T |
   | emb_type       | str   | None   | 使用None/'const'/'variable'/'random'表示Embedding模式 | C R T |
   | emb_dim        | int   | 300    | Embedding维度（输入为特征时表示特征的维度）           | C R T |
   | n_class        | int   | 2      | 分类的目标类数                                        | C R T |
@@ -36,7 +36,7 @@ Version 0.12 by KzXuan
   | score_standard | str   | 'Acc'  | 使用'Ma-F'/…/'C1-R'/'C1-F'/'Acc'等设定模型评判标准    | C R T |
   | rnn_type       | str   | 'LSTM' | 使用'tanh'/'LSTM'/'GRU'设定RNN的核心模型              | R     |
   | bi_direction   | bool  | True   | 双向/单向RNN                                          | R     |
-  | use_attention  | bool  | Ture   | 是否使用注意力机制（默认在每一层次的RNN上添加）       | R     |
+  | use_attention  | bool  | False  | 是否使用注意力机制（默认在每一层次的RNN上添加）       | R     |
   | n_layer        | int   | 1      | 每个层次的RNN层数或Transformer的层数                  | R T   |
   | n_head         | Int   | 8      | Transformer模型的注意力头数                           | T     |
 
@@ -235,6 +235,6 @@ from dnn.pytorch import base, layer, model, exec
 #### 注意事项
 
 1. 使用Embedding时，应在0位置添加全零向量，以保证在序列补0的情况下，Embedding查询后的向量依然为全零（#不会导致运算错误和结果异常的建议）。
-2. 参数space_turbo提供了一种将全部数据直接存入GPU中的加速方法，关闭此功能数据将按batch顺序依次拷贝到GPU中，降低GPU显存消耗并增加程序运行时间，非必要情况不建议关闭space_turbo。
+2. 参数space_turbo提供了一种将全部数据直接存入GPU中的加速方法，关闭此功能数据将按batch顺序依次拷贝到GPU中，降低GPU显存消耗但增加程序运行时间，非必要情况不建议关闭space_turbo。
 3. 表示层级功能的类应以"\_layer"结尾，表示标准模型的类应以"\_model"结尾，表示模型执行的类应以"\_classify"/"\_sequence"等功能性标注结尾。
 

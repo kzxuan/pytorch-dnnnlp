@@ -3,7 +3,7 @@
 """
 Some base modules for deep neural network
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2019.03.12
+Last update: KzXuan, 2019.03.18
 """
 import torch
 import argparse
@@ -18,7 +18,7 @@ def default_args(data_dict=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_gpu", default=1, type=int, help="number of GPUs for running")
     parser.add_argument("--space_turbo", default=True, type=bool, help="use more space to fasten")
-    parser.add_argument("--data_shuffle", default=False, type=bool, help="shuffle data")
+    parser.add_argument("--data_shuffle", default=True, type=bool, help="shuffle data")
     parser.add_argument("--emb_type", default=None, type=str, help="embedding type")
     if data_dict is not None:
         parser.add_argument("--emb_dim", default=data_dict['x'].shape[-1], type=int, help="embedding dimension")
@@ -38,7 +38,7 @@ def default_args(data_dict=None):
 
     parser.add_argument("--rnn_type", default='LSTM', type=str, help="use tanh, LSTM or GRU")
     parser.add_argument("--bi_direction", default=True, type=bool, help="bi direction choice")
-    parser.add_argument("--use_attention", default=True, type=bool, help="use attention or not")
+    parser.add_argument("--use_attention", default=False, type=bool, help="use attention or not")
     parser.add_argument("--n_layer", default=1, type=int, help="hidden layer number")
     parser.add_argument("--n_head", default=8, type=int, help="attention head number")
 
@@ -115,15 +115,36 @@ class base(object):
     @staticmethod
     def mod_fold(length, fold=10):
         """
-        Use index for fold
+        Use mod index to fold
         * length [int]: length of data
         * fold [int]: fold in need
         - indexs [list]: [(fold_num, train_index, test_index),]
         """
         indexs = []
+        _all = np.arange(length, dtype=int)
         for f in range(fold):
-            test = [ind for ind in range(f, length, fold)]
-            train = [ind for ind in range(length) if ind not in test]
+            test = np.arange(f, length, fold, dtype=int)
+            train = np.setdiff1d(_all, test)
+            indexs.append((f + 1, train, test))
+        return indexs
+
+    @staticmethod
+    def order_fold(length, fold=10):
+        """
+        Use order index to fold
+        * length [int]: length of data
+        * fold [int]: fold in need
+        - indexs [list]: [(fold_num, train_index, test_index),]
+        """
+        indexs = []
+        _all = np.arange(length, dtype=int)
+        gap, left = length // fold, length % fold
+        begin = 0
+        for f in range(fold):
+            step = gap + 1 if f < left else gap
+            test = np.arange(begin, begin + step, dtype=int)
+            train = np.setdiff1d(_all, test)
+            begin += step
             indexs.append((f + 1, train, test))
         return indexs
 

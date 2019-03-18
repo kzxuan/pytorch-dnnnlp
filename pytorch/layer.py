@@ -3,7 +3,7 @@
 """
 Some common layers for deep neural network
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2019.03.12
+Last update: KzXuan, 2019.03.18
 """
 import math
 import torch
@@ -11,6 +11,21 @@ import numpy as np
 import torch.nn as nn
 import torch.utils.data as Data
 import torch.nn.functional as F
+
+
+def get_mask(inputs, seq_len, max_seq_len=None):
+    """
+    Get mask matrix
+    * inputs [tensor]: tensor corresponding to seq_len (batch_size * max_seq_len * input_size)
+    * seq_len [tensor]: sequence length vector
+    * max_seq_len [int]: max sequence length
+    - mask [tensor]: mask matrix for each sample (batch_size * max_seq_len)
+    """
+    seq_len = seq_len.type_as(inputs.data)
+    max_seq_len = inputs.size(1) if max_seq_len is None else max_seq_len
+    query = torch.arange(0, max_seq_len, device=inputs.device).unsqueeze(1).float()
+    mask = torch.lt(query, seq_len.unsqueeze(0)).float().transpose(0, 1)
+    return mask
 
 
 def embedding_layer(emb_matrix, emb_type='const'):
@@ -30,21 +45,6 @@ def embedding_layer(emb_matrix, emb_type='const'):
     else:
         emb_mat = None
     return emb_mat
-
-
-def get_mask(inputs, seq_len, max_seq_len=None):
-    """
-    Get mask matrix
-    * inputs [tensor]: tensor corresponding to seq_len (batch_size * max_seq_len * input_size)
-    * seq_len [tensor]: sequence length vector
-    * max_seq_len [int]: max sequence length
-    - mask [tensor]: mask matrix for each sample (batch_size * max_seq_len)
-    """
-    seq_len = seq_len.type_as(inputs.data)
-    max_seq_len = inputs.size(1) if max_seq_len is None else max_seq_len
-    query = torch.arange(0, max_seq_len, device=inputs.device).unsqueeze(1).float()
-    mask = torch.lt(query, seq_len.unsqueeze(0)).float().transpose(0, 1)
-    return mask
 
 
 class positional_embedding_layer(nn.Module):
@@ -313,96 +313,115 @@ class softmax_layer(nn.Module):
 
 
 class multi_head_attention_layer(nn.Module):
-    def __init__(self, input_size, n_hidden, n_head):
+    def __init__(self, query_size, key_size=None, value_size=None, n_hidden=None, n_head=8):
         """
         The multi-head attention operation in transformer
-        * input_size [list]: input sizes for query & key & value
+        * query_size [int]: input sizes of query
+        * key_size [int]: input sizes of key
+        * value_size [int]: input sizes of value
         * n_hidden [int]: number of hidden weight matrix nodes
         * n_head [int]: number of context attentions
+        * drop_prob [float]: drop out ratio
         """
         super(multi_head_attention_layer, self).__init__()
-        assert len(input_size) == 3, "! Need three values for 'input_size'."
-
-        self.input_size = input_size
-        self.n_hidden = n_hidden
+        self.query_size = query_size
+        self.key_size = query_size if key_size is None else key_size
+        self.value_size = query_size if value_size is None else value_size
+        self.n_hidden = query_size if n_hidden is None else n_hidden
         self.n_head = n_head
-        self.attention = nn.ModuleList(
-            [nn.Linear(isize, n_hidden * n_head) for isize in input_size]
-        )
-        for m in self.attention.modules():
-            if isinstance(m, nn.Linear):
-                # nn.init.normal_(m.weight, mean=0, std=np.sqrt(2.0 / (input_size[-1] + n_hidden)))
-                nn.init.xavier_uniform_(m.weight, 0.01)
-        self.gather = nn.Linear(n_hidden * n_head, input_size[-1], bias=False)
 
-    def forward(self, inputs):
+        self.query_w = nn.Linear(self.query_size, n_head * self.n_hidden)
+        self.key_w = nn.Linear(self.key_size, n_head * self.n_hidden)
+        self.value_w = nn.Linear(self.value_size, n_head * self.n_hidden)
+
+        self.gather = nn.Linear(n_head * self.n_hidden, self.value_size, bias=False)
+
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, mean=0, std=np.sqrt(2.0 / (self.query_size + self.n_hidden)))
+
+    def forward(self, query, key=None, value=None, seq_len=None):
         """
         Forward calculation of the layer
-        * inputs [list]: query & key & value tensor (batch_size * max_seq_len * input_size)
-        - outputs [tensor]: expression after attention (batch_size * max_seq_len * input_size)
+        * query [tensor]: inputs of query (batch_size * max_seq_len * query_size)
+        * key [tensor]: inputs of key (batch_size * max_seq_len * key_size)
+        * value [tensor]: inputs of value (batch_size * max_seq_len * value_size)
+        - outputs [tensor]: expression after attention (batch_size * max_seq_len * value_size)
         """
-        assert len(inputs) == 3, "! Need three tensors for 'inputs'."
+        assert query.size(-1) == self.query_size, "! Wrong size for 'query'."
+        key = query if key is None else key
+        assert key.size(-1) == self.key_size, "! Wrong size for 'key'."
+        value = query if value is None else value
+        assert value.size(-1) == self.value_size, "! Wrong size for 'value'."
+        now_batch_size, max_seq_len, _ = query.size()
 
-        batch_size = inputs[0].size(0)
-        query, key, value = [
-            torch.reshape(
-                self.attention[i](inputs[i]),
-                [batch_size, -1, self.n_head, self.n_hidden]
-            ).transpose(1, 2) for i in range(3)
-        ]
-        score = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(query.size(-1))
-        sum_score = score.sum(-1, True) + 1e-9
-        score = score / sum_score.expand_as(score)
+        if seq_len is not None:
+            mask = get_mask(query, seq_len)
+            mask = mask.unsqueeze(1).repeat(self.n_head, max_seq_len, 1)
+            mask = torch.eq(mask, 0)
+
+        query = torch.reshape(self.query_w(query), [now_batch_size, -1, self.n_head, self.n_hidden]).transpose(1, 2)
+        query = torch.reshape(query, [-1, max_seq_len, self.n_hidden])
+        key = torch.reshape(self.key_w(key), [now_batch_size, -1, self.n_head, self.n_hidden]).transpose(1, 2)
+        key = torch.reshape(key, [-1, max_seq_len, self.n_hidden])
+        value = torch.reshape(self.value_w(value), [now_batch_size, -1, self.n_head, self.n_hidden]).transpose(1, 2)
+        value = torch.reshape(value, [-1, max_seq_len, self.n_hidden])
+
+        score = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(self.query_size)
+        score = F.softmax(score.masked_fill(mask, 0), dim=-1)
         outputs = torch.matmul(score, value)
-        outputs = outputs.transpose(1, 2).contiguous().view(batch_size, -1, self.n_head * self.n_hidden)
+        outputs = outputs.transpose(1, 2).contiguous().view(now_batch_size, -1, self.n_head * self.n_hidden)
         outputs = self.gather(outputs)
+
+        if seq_len is not None:
+            mask = get_mask(outputs, seq_len)
+            mask = mask.unsqueeze(2)
+        outputs *= mask
+
         return outputs
 
 
 class transformer_layer(nn.Module):
-    def __init__(self, input_size, n_hidden, n_head):
+    def __init__(self, input_size, n_hidden, n_head, drop_prob=0.1):
         """
         The whole transformer layer
-        * input_size [int/list]: input sizes for query & key & value (give an int when all are equal)
+        * input_size [int]: input sizes for query & key & value
         * n_hidden [int]: number of hidden weight matrix nodes
         * n_head [int]: number of attentions
         """
         super(transformer_layer, self).__init__()
-        if type(input_size).__name__[:3] == 'int':
-            input_size = [input_size] * 3
-        elif type(input_size).__name__[:4] == 'list':
-            assert len(input_size) == 3, "! Need three values for 'input_size'."
 
-        self.attention = multi_head_attention_layer(input_size, n_hidden, n_head)
-        self.norm_1 = nn.LayerNorm(input_size[-1])
+        self.attention = multi_head_attention_layer(input_size, n_hidden=n_hidden, n_head=n_head)
+        self.drop_out = nn.Dropout(drop_prob)
+        self.norm_1 = nn.LayerNorm(input_size)
         self.feed_forward = nn.Sequential(
-            nn.Linear(input_size[-1], input_size[-1]),
+            nn.Linear(input_size, input_size),
             nn.ReLU(),
-            nn.Dropout(0.1),
-            nn.Linear(input_size[-1], input_size[-1]),
+            nn.Dropout(drop_prob),
+            nn.Linear(input_size, input_size),
         )
-        self.norm_2 = nn.LayerNorm(input_size[-1])
+        self.norm_2 = nn.LayerNorm(input_size)
+
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, multi_head_attention_layer):
+                m.init_weights()
 
     def forward(self, inputs, seq_len=None, get_index=None):
         """
         Forward calculation of the layer
-        * inputs [tensor/list]: input tensor (batch_size * max_seq_len * input_size)
-                                give a list if not query == key == value
+        * inputs [tensor]: input tensor (batch_size * max_seq_len * input_size)
         * seq_len [tensor]: sequence length (batch_size,)
         * get_index [int/list/tuple]: give only the value of the index (None means all)
         - outputs [tensor]: attention output (batch_size * max_seq_len * input_size)
         """
-        if type(inputs).__name__[:6] == 'Tensor':
-            inputs = [inputs] * 3
-        elif type(inputs).__name__[:4] == 'list':
-            assert len(inputs) == 3, "! Need three tensors for 'inputs'."
-
-        now_batch_size, max_seq_len, _ = inputs[0].size()
-        outputs = self.norm_1(self.attention(inputs) + inputs[-1])
+        now_batch_size, max_seq_len, _ = inputs.size()
+        outputs = self.norm_1(self.drop_out(self.attention(inputs, seq_len=seq_len)) + inputs)
         outputs = self.norm_2(self.feed_forward(outputs) + outputs)
 
         if seq_len is not None:
-            mask = get_mask(inputs[-1], seq_len)
+            mask = get_mask(inputs, seq_len)
             mask = mask.contiguous().view(now_batch_size, max_seq_len, 1)
             outputs = outputs * mask
 

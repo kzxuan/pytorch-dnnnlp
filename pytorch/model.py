@@ -3,14 +3,14 @@
 """
 Some common models for deep neural network
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2019.03.12
+Last update: KzXuan, 2019.03.18
 """
 import torch
 import numpy as np
 import torch.nn as nn
 import torch.utils.data as Data
 import torch.nn.functional as F
-from dnn.pytorch import base, layer
+from dnn.pytorch import base, layer, contrib
 
 
 class CNN_model(nn.Module, base.base):
@@ -144,12 +144,19 @@ class transformer_model(nn.Module, base.base):
         base.base.__init__(self, args)
 
         self.emb_mat = layer.embedding_layer(emb_matrix, self.emb_type)
-        self.pos_emb_mat = layer.positional_embedding_layer(self.emb_dim)
+        self.pos_emb_mat = layer.positional_embedding_layer(self.n_hidden)
         self.drop_out = nn.Dropout(self.drop_prob)
-        self.transformer = nn.ModuleList(
-            [layer.transformer_layer(self.emb_dim, self.n_hidden, self.n_head) for _ in range(self.n_layer)]
-        )
+        self.transformer = nn.ModuleList([
+            layer.transformer_layer(self.emb_dim, self.n_hidden, self.n_head) for _ in range(self.n_layer)
+        ])
         self.predict = layer.softmax_layer(self.emb_dim, self.n_class)
+
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, layer.transformer_layer):
+                m.init_weights()
+            if isinstance(m, layer.softmax_layer):
+                m.init_weights()
 
     def forward(self, inputs, seq_len):
         """
@@ -163,8 +170,8 @@ class transformer_model(nn.Module, base.base):
         seq_len = torch.reshape(seq_len, [-1])
 
         outputs = self.drop_out(inputs)
-        # outputs = torch.cat((outputs, self.pos_emb_mat(outputs).expand_as(outputs)), -1)
 
+        # outputs = torch.cat((outputs, self.pos_emb_mat(outputs).repeat(now_batch_size, 1, 1)), -1)
         # if seq_len is not None:
         #     mask = layer.get_mask(inputs, seq_len)
         #     mask = mask.contiguous().view(now_batch_size, max_seq_len, 1)
@@ -176,3 +183,4 @@ class transformer_model(nn.Module, base.base):
 
         pred = self.predict(outputs)
         return pred
+

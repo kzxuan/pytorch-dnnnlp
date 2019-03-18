@@ -3,7 +3,7 @@
 """
 Execution functions for deep neural models
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2019.03.12
+Last update: KzXuan, 2019.03.18
 """
 import torch
 import numpy as np
@@ -33,10 +33,10 @@ class exec(base.base):
         self.init_device = torch.device("cuda:0") if self.space_turbo else torch.device("cpu")
         self._init_display()
 
-    def _model_to_cuda(self):
+    def _model_to_cuda(self, cuda_id=0):
         if self.n_gpu:
             self.gpu_dist = range(self.n_gpu)
-            self.model.cuda(self.gpu_dist[0])
+            self.model.cuda(self.gpu_dist[cuda_id])
             if self.n_gpu > 1:
                 self.model = nn.DataParallel(self.model, device_ids=self.gpu_dist)
 

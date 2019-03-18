@@ -7,6 +7,12 @@ Version 0.12
       更名参数base.GRU_enable为base.rnn_type
       修复layer.RNN_layer()中关于0矩阵截取和填充的问题
     2 提供参数base.space_turbo控制GPU空间换时间的加速功能
+    3 PyTorch版本支持更新到1.0.1
+    4 更新交叉验证，添加base.order_fold()方法，并提升两种方法的效率
+  * 5 更新Transformer
+      调整Transformer所有函数的易用性，并提供参数初始化函数
+      修复部分维度和mask中存在的错误
+      加快Transformer运行速度
 
 Version 0.11
   * 1 逻辑优化和速度优化，降低50%系统内存占用空间并提升超过2倍的运行速度
@@ -16,15 +22,15 @@ Version 0.11
   * 2 支持模型参数初始化
       添加函数CM.init_weight()，为CNN模型提供权重初始化
       添加函数RM.init_weight()，为RNN模型提供权重初始化
-    3 添加参数base.data_shuffle()，支持打乱数据操作
+    3 添加参数base.data_shuffle，支持打乱数据操作
   * 4 支持Transformer
-      添加参数base.n_head()
+      添加参数base.n_head
       创建多头注意力层layer.multi_head_attention_layer()
       创建位置信息层layer.positional_embedding_layer()
       创建Transformer层layer.transformer_layer()
       创建Transformer模型model.transformer_model()
       创建Transformer模型执行函数exec.transformer_classify()
-    5 调整RNN.embedding_layer()至layer.embedding_layer()
+    5 调整base.embedding_layer()至layer.embedding_layer()
     6 创建函数layer.get_mask()，提取mask相关部分并更新相关层和模型
 
 Version 0.10

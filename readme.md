@@ -73,7 +73,9 @@ Version 0.12 by KzXuan
      # 程序内修改参数
      args.n_hidden = 100
      args.batch_size = 32
-     
+     ```
+
+     ```bash
      # 在命令行中传递参数，与程序内修改参数互斥
      > python3 demo.py --n_hidden 100 --batch_size 32
      ```
@@ -85,7 +87,7 @@ Version 0.12 by KzXuan
      ```python
      # 创建训练数据集
      train_loader = base.create_data_loader(
-     		torch.tensor(data_dict['x'], dtype=torch.float, device=torch.device("cuda:0")),
+       	torch.tensor(data_dict['x'], dtype=torch.float, device=torch.device("cuda:0")),
          torch.tensor(data_dict['y'], dtype=torch.int, device=torch.device("cuda:0")),
          *[torch.tensor(e, dtype=torch.int, device=torch.device("cuda:0")) for e in data_dict['len']]
      )
@@ -150,7 +152,7 @@ Version 0.12 by KzXuan
      cnn_set = nn.ModuleList()
      for kw in range(2, 5):
          cnn_set.append(
-           layer.CNN_layer(emb_dim, in_channels=1, out_channels=50, kernel_width=kw, stride=1)
+     				layer.CNN_layer(emb_dim, in_channels=1, out_channels=50, kernel_width=kw, stride=1)
          )
      # 将调用后的结果进行拼接
      outputs = torch.cat([c(inputs, seq_len, out_type='max') for c in cnn_set], -1)

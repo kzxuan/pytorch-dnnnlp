@@ -87,7 +87,7 @@ Version 0.12 by KzXuan
      ```python
      # 创建训练数据集
      train_loader = base.create_data_loader(
-       	torch.tensor(data_dict['x'], dtype=torch.float, device=torch.device("cuda:0")),
+         torch.tensor(data_dict['x'], dtype=torch.float, device=torch.device("cuda:0")),
          torch.tensor(data_dict['y'], dtype=torch.int, device=torch.device("cuda:0")),
          *[torch.tensor(e, dtype=torch.int, device=torch.device("cuda:0")) for e in data_dict['len']]
      )
@@ -152,7 +152,7 @@ Version 0.12 by KzXuan
      cnn_set = nn.ModuleList()
      for kw in range(2, 5):
          cnn_set.append(
-     				layer.CNN_layer(emb_dim, in_channels=1, out_channels=50, kernel_width=kw, stride=1)
+             layer.CNN_layer(emb_dim, in_channels=1, out_channels=50, kernel_width=kw, stride=1)
          )
      # 将调用后的结果进行拼接
      outputs = torch.cat([c(inputs, seq_len, out_type='max') for c in cnn_set], -1)
@@ -169,8 +169,8 @@ Version 0.12 by KzXuan
      rnn_stack = nn.ModuleList()
      for _ in range(2):
          rnn_stack.append(
-     				layer.RNN_layer(input_size, n_hidden=50, n_layer=1, drop_prob=0.1, bi_direction=True, mode="GRU")
-     		)
+             layer.RNN_layer(input_size, n_hidden=50, n_layer=1, drop_prob=0.1, bi_direction=True, mode="GRU")
+         )
      # 第一层GRU取全部输出
      outputs = torch.reshape(inputs, [-1, inputs.size(2), inputs.size(3)])
      outputs = rnn_stack[0](outputs, seq_len_1, out_type='all')
@@ -215,7 +215,7 @@ Version 0.12 by KzXuan
          trans_stack.append(layer.transformer_layer(emb_dim, n_hidden, n_head, drop_prob))
      # 前两层取全部位置的输出
      for i in range(2):
-     		outputs = trans_stack[i](outputs, seq_len, get_index=None)
+         outputs = trans_stack[i](outputs, seq_len, get_index=None)
      # 第三层取第一个位置的输出
      outputs = trans_stack[2](outputs, seq_len, get_index=0)
      ```

@@ -59,59 +59,164 @@ Version 0.12 by KzXuan
 
 1. 参数和基类 **([base.py](./pytorch/base.py))**
 
-   * default_args(data_dict=None)
+   * default_args()
 
-     接受data_dict作为参数，初始化所有超参数，并返回参数集。所有参数支持在命令行内直接赋值，或在得到返回值后修改。
+     初始化所有超参数，并返回参数集。**在使用此函数获得默认参数集后，大部分参数将不需要再进行手动修改。**
 
-     **在使用此函数获得默认参数集后，大部分参数将不需要再进行手动修改。**
+     ```python
+     def default_args():
+         # ...
+         return args
+     
+     args = default_args()
+     
+     # 程序内修改参数
+     args.n_hidden = 100
+     args.batch_size = 32
+     
+     # 在命令行中传递参数，与程序内修改参数互斥
+     > python3 demo.py --n_hidden 100 --batch_size 32
+     ```
 
    * base(args)
 
-     基类，接受args参数集，初始化模型参数，并包含部分基本函数，集成多次运行取平均、参数网格搜索等功能。
+     基类，接受args参数集，初始化模型参数，并包含部分基本函数，集成多次运行取平均、参数网格搜索等功能（详见<模型功能与使用>）。
+
+     ```python
+     # 创建训练数据集
+     train_loader = base.create_data_loader(
+     		torch.tensor(data_dict['x'], dtype=torch.float, device=torch.device("cuda:0")),
+         torch.tensor(data_dict['y'], dtype=torch.int, device=torch.device("cuda:0")),
+         *[torch.tensor(e, dtype=torch.int, device=torch.device("cuda:0")) for e in data_dict['len']]
+     )
+     
+     # 使用下标交叉验证
+     for nf, train, test in base.mod_fold(data_dict['x'].shape[0], fold=10):
+         pass
+     
+     # 使用按序交叉验证
+     for nf, train, test in base.order_fold(data_dict['x'].shape[0], fold=10):
+         pass
+     ```
 
 2. 封装网络层 **([layer.py](./pytorch/layer.py))**
 
    封装的类都可以脱离项目提供的构造环境来单独运行，且均提供参数初始化函数，需要在类实例化后调用。
 
-   * Positional_embedding_layer(emb_dim, max_len=512)
+   * embedding_layer(emb_matrix, emb_type='const')
 
-     位置Embedding层，为序列创建位置信息
+     Embedding层，将词向量查询矩阵转化成torch内的可用变量，提供"const"/"variable"/"random"三种模式。
+
+     ```python
+     # 导入已有Embedding矩阵，训练中矩阵不可变
+     emb_matrix = np.load("...")
+     torch_emb_mat = layer.embedding_layer(emb_matrix, 'const')
+     # 查询下标获取完整inputs
+     outputs = torch_emb_mat(inputs)
+     ```
+
+   * positional_embedding_layer(emb_dim, max_len=512)
+
+     位置Embedding层，为序列创建位置信息。
+
+     ```python
+     # 为最大长度为140的序列创建50维位置Embedding
+     pel = layer.positional_embedding_layer(50, max_len=140)
+     # 获取当前输入的位置Embedding
+     pos_emb = per(inputs)
+     ```
 
    * self_attention_layer(n_hidden)
 
      自注意力机制层，接受隐层节点数n_hidden参数。
 
+     ```python
+     # 创建自注意力层
+     sal = layer.self_attention_layer(n_hidden=50)
+     # 参数自定义初始化（在有需求的情况下调用）
+     sal.init_weights()
+     # 调用时若需要使用长度信息，seq_len必须是一维向量，下同
+     outputs = sal(inputs, seq_len)
+     ```
+
    * CNN_layer(input_size, in_channels, out_channels, kernel_width, stride=1)
 
      封装的CNN层，支持最大池化和平均池化。
 
-     调用时需要传入一个四维的inputs来保证模型的正常运行，若传入的inputs为三维，会自动添加一个第二维，并在第二维上复制in_channels次。若需要使用长度信息，seq_len必须是一维向量。
+     **调用时需要传入一个四维的inputs来保证模型的正常运行**，若传入的inputs为三维，会自动添加一个第二维，并在第二维上复制in_channels次。可选择输出模式"max"/"mean"/"all"来分别得到最大池化后的输出，平均池化后的输出或原始的全部输出。
 
-     调用时可选择输出模式"max"/"mean"/"all"来分别得到最大池化后的输出，平均池化后的输出或原始的全部输出。
+     ```python
+     # 创建卷积核宽度分别为2、3、4的且通道数为50的CNN集合
+     cnn_set = nn.ModuleList()
+     for kw in range(2, 5):
+         cnn_set.append(
+           layer.CNN_layer(emb_dim, in_channels=1, out_channels=50, kernel_width=kw, stride=1)
+         )
+     # 将调用后的结果进行拼接
+     outputs = torch.cat([c(inputs, seq_len, out_type='max') for c in cnn_set], -1)
+     ```
 
-   * RNN_layer(input_size, n_hidden, n_layer, drop_prob, bi_direction, GRU_enable=False)
+   * RNN_layer(input_size, n_hidden, n_layer, drop_prob, bi_direction, mode="LSTM")
 
      封装的RNN层，支持tanh/LSTM/GRU，支持单/双向及多层堆叠。
 
-     调用时需要传入一个三维的inputs来保证模型的正常运行。若需要使用长度信息，seq_len必须是一维向量。
+     **调用时需要传入一个三维的inputs来保证模型的正常运行。**可选择输出模式"all"/"last"来分别得到最后一层的全部隐层输出，或最后一层的最后一个时间步的输出。
 
-     调用时可选择输出模式"all"/"last"来分别得到最后一层的全部隐层输出，或最后一层的最后一个时间步的输出。
+     ```python
+     # 创建堆叠式的两层GRU模型
+     rnn_stack = nn.ModuleList()
+     for _ in range(2):
+         rnn_stack.append(
+     				layer.RNN_layer(input_size, n_hidden=50, n_layer=1, drop_prob=0.1, bi_direction=True, mode="GRU")
+     		)
+     # 第一层GRU取全部输出
+     outputs = torch.reshape(inputs, [-1, inputs.size(2), inputs.size(3)])
+     outputs = rnn_stack[0](outputs, seq_len_1, out_type='all')
+     # 第二层GRU取最后一个时间步的输出
+     outputs = torch.reshape(outputs, [inputs.size(0), inputs.size(1), -1])
+     outputs = rnn_stack[1](outputs, seq_len_2, out_type='last')
+     ```
 
    * softmax_layer(n_in, n_out)
 
      简单的Softmax层/全连接层。
 
-   * multi_head_attention_layer(input_size, n_hidden, n_head)
+     ```python
+     # Softmax层进行二分类
+     sl = layer.softmax_layer(100, 2)
+     sl.init_weights()
+     
+     prediction = sl(inputs)
+     ```
 
-     多头注意力层，Transformer内的注意力操作，支持任意数值的n_head数。
+   * multi_head_attention_layer(query_size, key_size=None, value_size=None, n_hidden=None, n_head=8)
 
-   * transformer_layer(input_size, n_hidden, n_head)
+     多头注意力层，Transformer内的注意力操作。若key或value的初始维度和初始值未给出，将自动使用query作为key或value。
+
+     ```python
+     # 单个输入query使用多头注意力
+     mhal = layer.multi_head_attention_layer(query_size, n_hidden=50, n_head=16)
+     
+     outputs = mhal(query, seq_len=seq_len)
+     ```
+
+   * transformer_layer(input_size, n_hidden, n_head, drop_prob=0.1)
 
      封装的Transformer层，支持多头注意力、任意位提取输出。
 
-     调用时需要以列表形式传入三个inputs值，分别对应query/key/value且最后一维要和列表input_size相对应，当三个值相同时，可以只传入单个input_size和单个Tensor。
+     调用时直接取inputs同时作为query/key/value，可以选择提取序列输出的某一个位置作为整个transformer层的输出。
 
-     调用时可以选择提取序列输出的某一个位置作为整个transformer层的输出。
+     ```python
+     # 创建堆叠式的三层Transformer模型
+     trans_stack = nn.ModuleList()
+     for _ in range(3):
+         trans_stack.append(layer.transformer_layer(emb_dim, n_hidden, n_head, drop_prob))
+     # 前两层取全部位置的输出
+     for i in range(2):
+     		outputs = trans_stack[i](outputs, seq_len, get_index=None)
+     # 第三层取第一个位置的输出
+     outputs = trans_stack[2](outputs, seq_len, get_index=0)
+     ```
 
 3. 封装模型 **([model.py](./pytorch/model.py))**
 

@@ -8,6 +8,7 @@ import re
 import sys
 import time
 import threading
+import numpy as np
 
 
 def sysprint(str_words):
@@ -89,13 +90,13 @@ class run_time(object):
     Record the run time of the program
     """
     def __init__(self, print_str=None):
-        self.start = time.time()
+        self.begin = time.time()
         if print_str is not None:
             print(print_str)
 
     def stop(self, time_str="* Run time:", end_str="* Done !"):
         self.end = time.time()
-        print((time_str + ' %.2f' + 's') % (self.end - self.start))
+        print((time_str + ' %.2f' + 's') % (self.end - self.begin))
         if end_str is not None:
             print(end_str)
 

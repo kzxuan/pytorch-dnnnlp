@@ -204,6 +204,8 @@ def one_hot(arr, n_class=0):
     """
     if arr is None:
         return None
+    if type(arr).__name__ == "list":
+        arr = np.array(arr)
     if n_class == 0:
         n_class = arr.max() + 1
     oh = np.zeros((arr.size, n_class), dtype=int)

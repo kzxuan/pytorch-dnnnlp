@@ -77,7 +77,10 @@ def predict_analysis(true, predict, one_hot=False, class_name=None,
         detail.update(**{('C%d-P' % c): ana[3][c] for c in range(n_class)}, **{'Ma-P': ana[3][n_class]})
         detail.update(**{('C%d-R' % c): ana[4][c] for c in range(n_class)}, **{'Ma-R': ana[4][n_class]})
         detail.update(**{('C%d-F' % c): ana[5][c] for c in range(n_class)}, **{'Ma-F': ana[5][n_class]})
-        result = {key: detail[key] for key in detail.keys() if key.split('-')[0] == get_prf}
+        if get_prf != "All":
+            result = {key: detail[key] for key in detail.keys() if key.split('-')[0] == get_prf}
+        else:
+            result = detail.copy()
         result.update({'Acc': ana[6][-1], 'Correct': true_pred})
         return result
     else:

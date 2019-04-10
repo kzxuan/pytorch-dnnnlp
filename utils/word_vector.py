@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Functions for word2vector operation
-Last update: KzXuan, 2018.12.15
+Last update: KzXuan, 2019.03.19
 """
 import numpy as np
 import codecs as cs
@@ -33,9 +33,7 @@ class word2vector(object):
             self.vocab[key] = value
 
     def get_matrix(self):
-        vector_matrix = []
-        for word in self.vocab:
-            vector_matrix.append(self.vocab[word])
+        vector_matrix = list(self.vocab.values())
         return np.array(vector_matrix)
 
     def update(self, up_w2v):
@@ -50,7 +48,7 @@ class word2vector(object):
         return 1
 
 
-def load_word2vec(in_dir, type='txt', header=True, binary=True, check_zero=True):
+def load_word2vec(in_dir, type='txt', header=True, binary=True, check_zero=True, state=True):
     """
     Read word2vector original file
     * type [string]: use 'bin' to load '.bin' file and use 'txt' to load '.txt' file
@@ -81,16 +79,18 @@ def load_word2vec(in_dir, type='txt', header=True, binary=True, check_zero=True)
         else:
             add_zero = False
 
-        per = percent("* Load word2vector", num_word)
+        if state:
+            per = percent("* Load word2vector", num_word)
         word_vectors = word2vector(emb_dim, add_zero=add_zero)
         for line in lines:
             word = line.split(' ', 1)[0]
             vector = np.array([float(n) for n in line.rstrip().split()[-emb_dim:]])
             word_vectors[word] = vector
-            per.change()
+            if state:
+                per.change()
         word_vectors.vector_size = emb_dim
     else:
-        raise("! Wrong type.")
+        raise("! Wrong input for 'type'.")
     print("- Word2vector size:", word_vectors.vector_size)
     return word_vectors
 

@@ -3,7 +3,7 @@
 """
 Some base modules for deep neural network
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2019.03.18
+Last update: KzXuan, 2019.04.09
 """
 import torch
 import argparse
@@ -14,18 +14,14 @@ import torch.utils.data as Data
 import torch.nn.functional as F
 
 
-def default_args(data_dict=None):
+def default_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_gpu", default=1, type=int, help="number of GPUs for running")
     parser.add_argument("--space_turbo", default=True, type=bool, help="use more space to fasten")
     parser.add_argument("--data_shuffle", default=True, type=bool, help="shuffle data")
     parser.add_argument("--emb_type", default=None, type=str, help="embedding type")
-    if data_dict is not None:
-        parser.add_argument("--emb_dim", default=data_dict['x'].shape[-1], type=int, help="embedding dimension")
-        parser.add_argument("--n_class", default=data_dict['y'].shape[-1], type=int, help="classify classes number")
-    else:
-        parser.add_argument("--emb_dim", default=300, type=int, help="embedding dimension")
-        parser.add_argument("--n_class", default=2, type=int, help="classify classes number")
+    parser.add_argument("--emb_dim", default=300, type=int, help="embedding dimension")
+    parser.add_argument("--n_class", default=2, type=int, help="classify classes number")
 
     parser.add_argument("--n_hidden", default=50, type=int, help="hidden layer nodes")
     parser.add_argument("--learning_rate", default=0.01, type=float, help="learning rate")

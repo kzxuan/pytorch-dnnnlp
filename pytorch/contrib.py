@@ -3,7 +3,7 @@
 """
 Some extend models written by contributor
 Ubuntu 16.04 & PyTorch 1.0.0
-Last update: KzXuan, 2019.03.18
+Last update: KzXuan, 2019.04.09
 """
 import torch
 import numpy as np

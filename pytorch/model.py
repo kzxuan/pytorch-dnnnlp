@@ -3,14 +3,14 @@
 """
 Some common models for deep neural network
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2019.03.18
+Last update: KzXuan, 2019.04.09
 """
 import torch
 import numpy as np
 import torch.nn as nn
 import torch.utils.data as Data
 import torch.nn.functional as F
-from dnn.pytorch import base, layer, contrib
+from dnn.pytorch import base, layer
 
 
 class CNN_model(nn.Module, base.base):

@@ -3,7 +3,7 @@
 """
 Execution functions for deep neural models
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2019.03.18
+Last update: KzXuan, 2019.04.09
 """
 import torch
 import numpy as np
@@ -18,26 +18,28 @@ from predict_analysis import predict_analysis
 
 
 class exec(base.base):
-    def __init__(self, data_dict, args=None, class_name=None):
+    def __init__(self, data_dict, args, class_name=None, device_id=0):
         """
         Initilize execution fuctions
         * data_dict [dict]: use key like 'x'/'vx'/'ty'/'lq' to store the data
         * args [dict]: all model arguments
         * class_name [list]: name of each class
         """
-        args = base.default_args(data_dict) if args is None else args
         base.base.__init__(self, args)
 
         self.data_dict = data_dict
         self.class_name = class_name
-        self.init_device = torch.device("cuda:0") if self.space_turbo else torch.device("cpu")
+        self.device_id = device_id
+        self.device = torch.device(device_id) if self.n_gpu and self.space_turbo else torch.device("cpu")
         self._init_display()
 
-    def _model_to_cuda(self, cuda_id=0):
+    def _model_to_cuda(self):
+        assert torch.cuda.device_count() >= self.n_gpu, "! GPU devices are not enough."
+        assert torch.cuda.device_count() >= self.device_id + self.n_gpu, "! GPU devices are not enough."
         if self.n_gpu:
-            self.gpu_dist = range(self.n_gpu)
-            self.model.cuda(self.gpu_dist[cuda_id])
+            self.model.cuda(self.device_id)
             if self.n_gpu > 1:
+                self.gpu_dist = range(self.device_id, self.device_id + self.n_gpu)
                 self.model = nn.DataParallel(self.model, device_ids=self.gpu_dist)
 
     def _init_display(self):
@@ -61,7 +63,7 @@ class exec(base.base):
         losses = 0.0
         for step, (x, y, *lq) in enumerate(train_loader):
             if not self.space_turbo and self.n_gpu:
-                x, y, lq = x.cuda(), y.cuda(), [ele.cuda() for ele in lq]
+                x, y, lq = x.cuda(self.device_id), y.cuda(self.device_id), [ele.cuda(self.device_id) for ele in lq]
             pred = self.model(x, *lq, **model_params)
             loss = - torch.sum(y.float() * torch.log(pred)) / torch.sum(lq[-1]).float()
             losses += loss.cpu().data.numpy()
@@ -83,7 +85,7 @@ class exec(base.base):
         preds, tys = torch.FloatTensor(), torch.IntTensor()
         for step, (tx, ty, *tlq) in enumerate(test_loader):
             if not self.space_turbo and self.n_gpu:
-                tx, ty, tlq = tx.cuda(), ty.cuda(), [ele.cuda() for ele in tlq]
+                tx, ty, tlq = tx.cuda(self.device_id), ty.cuda(self.device_id), [ele.cuda(self.device_id) for ele in tlq]
             pred = self.model(tx, *tlq, **model_params)
 
             preds = torch.cat((preds, pred.cpu()))
@@ -131,14 +133,14 @@ class exec(base.base):
         - best_result [dict]: the best result with key 'P'/'R'/'F'/'Acc'
         """
         train_loader = self.create_data_loader(
-            torch.tensor(self.data_dict['x'], dtype=torch.float, device=self.init_device),
-            torch.tensor(self.data_dict['y'], dtype=torch.int, device=self.init_device),
-            *[torch.tensor(ele, dtype=torch.int, device=self.init_device) for ele in self.data_dict['len']]
+            torch.tensor(self.data_dict['x'], dtype=torch.float, device=self.device),
+            torch.tensor(self.data_dict['y'], dtype=torch.int, device=self.device),
+            *[torch.tensor(ele, dtype=torch.int, device=self.device) for ele in self.data_dict['len']]
         )
         test_loader = self.create_data_loader(
-            torch.tensor(self.data_dict['tx'], dtype=torch.float, device=self.init_device),
-            torch.tensor(self.data_dict['ty'], dtype=torch.int, device=self.init_device),
-            *[torch.tensor(ele, dtype=torch.int, device=self.init_device) for ele in self.data_dict['tlen']]
+            torch.tensor(self.data_dict['tx'], dtype=torch.float, device=self.device),
+            torch.tensor(self.data_dict['ty'], dtype=torch.int, device=self.device),
+            *[torch.tensor(ele, dtype=torch.int, device=self.device) for ele in self.data_dict['tlen']]
         )
 
         best_iter, best_ty, best_pred, best_result = self._run(train_loader, test_loader, verbose)
@@ -178,14 +180,14 @@ class exec(base.base):
 
         for count, train, test in self.mod_fold(self.data_dict['x'].shape[0], fold=fold):
             train_loader = self.create_data_loader(
-                torch.tensor(self.data_dict['x'][train], dtype=torch.float, device=self.init_device),
-                torch.tensor(self.data_dict['y'][train], dtype=torch.int, device=self.init_device),
-                *[torch.tensor(ele[train], dtype=torch.int, device=self.init_device) for ele in self.data_dict['len']]
+                torch.tensor(self.data_dict['x'][train], dtype=torch.float, device=self.device),
+                torch.tensor(self.data_dict['y'][train], dtype=torch.int, device=self.device),
+                *[torch.tensor(ele[train], dtype=torch.int, device=self.device) for ele in self.data_dict['len']]
             )
             test_loader = self.create_data_loader(
-                torch.tensor(self.data_dict['x'][test], dtype=torch.float, device=self.init_device),
-                torch.tensor(self.data_dict['y'][test], dtype=torch.int, device=self.init_device),
-                *[torch.tensor(ele[test], dtype=torch.int, device=self.init_device) for ele in self.data_dict['len']]
+                torch.tensor(self.data_dict['x'][test], dtype=torch.float, device=self.device),
+                torch.tensor(self.data_dict['y'][test], dtype=torch.int, device=self.device),
+                *[torch.tensor(ele[test], dtype=torch.int, device=self.device) for ele in self.data_dict['len']]
             )
 
             if verbose > 0:
@@ -207,7 +209,7 @@ class exec(base.base):
 
 class CNN_classify(exec):
     def __init__(self, data_dict, emb_matrix=None, args=None,
-                 kernel_widths=[1, 2, 3], class_name=None):
+                 kernel_widths=[1, 2, 3], class_name=None, device_id=0):
         """
         Initilize the CNN classification model
         * data_dict [dict]: use key like 'x'/'vx'/'ty'/'lq' to store the data
@@ -216,7 +218,7 @@ class CNN_classify(exec):
         * kernel_widths [list]: kernel_widths [list]: list of kernel widths for cnn kernel
         * class_name [list]: name of each class
         """
-        exec.__init__(self, data_dict, args, class_name)
+        exec.__init__(self, data_dict, args, class_name, device_id)
 
         self.model = model.CNN_model(emb_matrix, args, kernel_widths)
         self._model_to_cuda()
@@ -227,7 +229,7 @@ class CNN_classify(exec):
 
 
 class RNN_classify(exec):
-    def __init__(self, data_dict, emb_matrix=None, args=None, class_name=None):
+    def __init__(self, data_dict, emb_matrix=None, args=None, class_name=None, device_id=0):
         """
         Initilize the RNN classification model
         * data_dict [dict]: use key like 'x'/'vx'/'ty'/'lq' to store the data
@@ -235,7 +237,7 @@ class RNN_classify(exec):
         * args [dict]: all model arguments
         * class_name [list]: name of each class
         """
-        exec.__init__(self, data_dict, args, class_name)
+        exec.__init__(self, data_dict, args, class_name, device_id)
         self.n_hierarchy = len(data_dict['len'])
 
         self.model = model.RNN_model(emb_matrix, args, self.n_hierarchy, mode='classify')
@@ -248,7 +250,7 @@ class RNN_classify(exec):
 
 class RNN_sequence(exec):
     def __init__(self, data_dict, emb_matrix=None, args=None,
-                 vote=False, class_name=None):
+                 vote=False, class_name=None, device_id=0):
         """
         Initilize the RNN sequencial labeling model
         * data_dict [dict]: use key like 'x'/'vx'/'ty'/'lq' to store the data
@@ -257,7 +259,7 @@ class RNN_sequence(exec):
         * vote [bool]: vote for duplicate data (need 'id'/'tid' in data_dict)
         * class_name [list]: name of each class
         """
-        exec.__init__(self, data_dict, args, class_name)
+        exec.__init__(self, data_dict, args, class_name, device_id)
         self.vote = vote
         self.n_hierarchy = len(data_dict['len'])
 
@@ -314,7 +316,7 @@ class RNN_sequence(exec):
 
 
 class transformer_classify(exec):
-    def __init__(self, data_dict, emb_matrix=None, args=None, class_name=None):
+    def __init__(self, data_dict, emb_matrix=None, args=None, class_name=None, device_id=0):
         """
         Initilize the CNN classification model
         * data_dict [dict]: use key like 'x'/'vx'/'ty'/'lq' to store the data
@@ -322,7 +324,7 @@ class transformer_classify(exec):
         * args [dict]: all model arguments
         * class_name [list]: name of each class
         """
-        exec.__init__(self, data_dict, args, class_name)
+        exec.__init__(self, data_dict, args, class_name, device_id)
 
         self.model = model.transformer_model(emb_matrix, args)
         self._model_to_cuda()

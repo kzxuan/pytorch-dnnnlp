@@ -3,7 +3,7 @@
 """
 Some common layers for deep neural network
 Ubuntu 16.04 & PyTorch 1.0
-Last update: KzXuan, 2019.03.18
+Last update: KzXuan, 2019.04.09
 """
 import math
 import torch

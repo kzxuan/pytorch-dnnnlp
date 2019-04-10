@@ -1,6 +1,11 @@
 PyTorch库编写的神经网络模型
 Ubuntu 16.04 & PyTorch 1.0
 
+Plan
+    1 修改网格搜索的多进程机制
+    2 修改predict_analysis的评估机制
+    3 修改可视化层级问题
+
 Version 0.12
     1 为RNN提供tanh/LSTM/GRU三种模型支持
       更名RNN层layer.LSTM_layer为layer.RNN_layer

@@ -61,7 +61,7 @@ Version 0.12 by KzXuan
 
    * default_args()
 
-     初始化所有超参数，并返回参数集。**在使用此函数获得默认参数集后，大部分参数将不需要再进行手动修改。**
+     初始化所有超参数，并返回参数集。
 
      ```python
      def default_args():

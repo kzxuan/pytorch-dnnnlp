@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Use CNN classify model
+Use transformer classify model
 Last update: KzXuan, 2019.01.26
 """
 import numpy as np
@@ -30,9 +30,10 @@ data_dict = {
 sl.stop()
 ef.print_shape(data_dict)
 
-args = default_args(data_dict)
+args = default_args()
 args.emb_type = 'const'
 args.emb_dim = w2v.vector_size
+args.n_class = 4
 args.n_hidden = 50
 args.learning_rate = 0.0001
 args.l2_reg = 0.0

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Use CNN classify model
-Last update: KzXuan, 2019.01.26
+Last update: KzXuan, 2019.04.11
 """
 import numpy as np
 import word_vector as wv
@@ -30,9 +30,10 @@ data_dict = {
 sl.stop()
 ef.print_shape(data_dict)
 
-args = default_args(data_dict)
+args = default_args()
 args.emb_type = 'const'
 args.emb_dim = w2v.vector_size
+args.n_class = 4
 args.n_hidden = 20
 args.learning_rate = 0.001
 args.l2_reg = 0.0

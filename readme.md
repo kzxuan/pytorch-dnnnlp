@@ -327,7 +327,7 @@ from dnn.pytorch import base, layer, model, exec
 
 #### 模型扩展与重写
 
-- 深度神经网络模型的构建需要继承\<nn.Module\>，建议同时继承基类\<base\>，可以简化参数的使用。在构建时，涉及到已经封装好的网络层级，可以直接调用\<LSTM_layer\>、\<self_attention_layer\>等。
+- 深度神经网络模型的构建需要继承\<nn.Module\>，建议同时继承基类\<base\>，可以简化参数的使用。在构建时，涉及到已经封装好的网络层级，可以直接调用\<RNN_layer\>、\<self_attention_layer\>等。
 
   \<RNN_model\>作为一个RNN模型构建的标准示范，扩展和重写的时候可以作为参考。
 

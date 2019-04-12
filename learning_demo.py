@@ -81,8 +81,6 @@ optimizer = torch.optim.Adam(
 """ Init data """
 train_data = Data.TensorDataset(x, y, l)
 train_loader = Data.DataLoader(train_data, shuffle=True, batch_size=args.batch_size)
-test_data = Data.TensorDataset(tx, ty, tl)
-test_loader = Data.DataLoader(test_data, shuffle=True, batch_size=args.batch_size)
 
 """ Train and test """
 for it in range(1, args.iter_times + 1):

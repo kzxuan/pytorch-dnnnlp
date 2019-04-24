@@ -18,13 +18,13 @@ print("- Embedding matrix size:", emb_mat.shape)
 
 """ Load data """
 # train data
-x = torch.tensor(np.load(dir.TRAIN + "index(4519,30).npy"), dtype=torch.float)
-y = torch.tensor(np.load(dir.TRAIN + "y(4519,4).npy"), dtype=torch.int)
-l = torch.tensor(np.load(dir.TRAIN + "len(4519,).npy"), dtype=torch.int)
+x = torch.tensor(np.load(dir.TRAIN + "index(4519,30).npy"), dtype=torch.float, device=torch.device(0))
+y = torch.tensor(np.load(dir.TRAIN + "y(4519,4).npy"), dtype=torch.int, device=torch.device(0))
+l = torch.tensor(np.load(dir.TRAIN + "len(4519,).npy"), dtype=torch.int, device=torch.device(0))
 # test data
-tx = torch.tensor(np.load(dir.TEST + "index(1049,30).npy"), dtype=torch.float)
-ty = torch.tensor(np.load(dir.TEST + "y(1049,4).npy"), dtype=torch.int)
-tl = torch.tensor(np.load(dir.TEST + "len(1049,).npy"), dtype=torch.int)
+tx = torch.tensor(np.load(dir.TEST + "index(1049,30).npy"), dtype=torch.float, device=torch.device(0))
+ty = torch.tensor(np.load(dir.TEST + "y(1049,4).npy"), dtype=torch.int, device=torch.device(0))
+tl = torch.tensor(np.load(dir.TEST + "len(1049,).npy"), dtype=torch.int, device=torch.device(0))
 
 """ Init arguments """
 args = base.default_args()
@@ -81,6 +81,8 @@ optimizer = torch.optim.Adam(
 """ Init data """
 train_data = Data.TensorDataset(x, y, l)
 train_loader = Data.DataLoader(train_data, shuffle=True, batch_size=args.batch_size)
+test_data = Data.TensorDataset(tx, ty, tl)
+test_loader = Data.DataLoader(test_data, shuffle=True, batch_size=args.batch_size)
 
 """ Train and test """
 for it in range(1, args.iter_times + 1):
@@ -89,7 +91,7 @@ for it in range(1, args.iter_times + 1):
     losses = []
     for (_x, _y, _l) in train_loader:
         # Copy data to gpu
-        _x, _y, _l = _x.cuda(0), _y.cuda(0), _l.cuda(0)
+        # _x, _y, _l = _x.cuda(0), _y.cuda(0), _l.cuda(0)
         pred = model(_x, _l)
         loss = - torch.sum(_y.float() * torch.log(pred)) / torch.sum(_l).float()
         losses.append(loss.cpu().data.numpy())
@@ -100,10 +102,10 @@ for it in range(1, args.iter_times + 1):
 
     # Test
     model.eval()
-    tx, tl = tx.cuda(0), tl.cuda(0)
+    # tx, tl = tx.cuda(0), tl.cuda(0)
     pred = model(tx, tl)
     pred = pred.cpu().data.numpy()
-    result = predict_analysis(ty.data.numpy(), pred, one_hot=True, simple=True)
+    result = predict_analysis(ty.cpu().data.numpy(), pred, one_hot=True, simple=True)
 
     # Print
     print("* Epoch {}, train loss {:.4f}, test accuracy {:.4f}".format(it, sum(losses) / len(losses), result['Acc']))

@@ -66,8 +66,9 @@ Version 1.0 by KzXuan
    
     封装的CNN层，支持最大池化和平均池化，支持自定义激活函数。
    
+
   **调用时需要传入一个四维的inputs来保证模型的正常运行**，若传入的inputs为三维，会自动添加一个第二维，并在第二维上复制in_channels次。可选择输出模式"max"/"mean"/"all"来分别得到最大池化后的输出，平均池化后的输出或原始的全部输出。
-   
+
      ```python
      # 创建卷积核宽度分别为2、3、4的且通道数为50的CNN集合
      cnn_set = nn.ModuleList()
@@ -78,13 +79,13 @@ Version 1.0 by KzXuan
      # 将调用后的结果进行拼接
      outputs = torch.cat([c(inputs, seq_len, out_type='max') for c in cnn_set], -1)
      ```
-   
+
   * RNNLayer(input_size, n_hidden, n_layer, drop_prob=0., bi_direction=True, mode="LSTM")
-   
+
   封装的RNN层，支持tanh/LSTM/GRU，支持单/双向及多层堆叠。
-   
+
      **调用时需要传入一个三维的inputs来保证模型的正常运行。**可选择输出模式"all"/"last"来分别得到最后一层的全部隐层输出，或最后一层的最后一个时间步的输出。
-   
+       
      ```python
      # 创建堆叠式的两层GRU模型
      rnn_stack = nn.ModuleList()

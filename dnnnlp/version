@@ -1,0 +1,189 @@
+PyTorch库编写的神经网络模型
+Ubuntu 16.04 & PyTorch 1.0
+
+Version 1.0
+  * 1 合并大框架为 dnnnlp, 分 {pytorch} 和 {utils} 两大库
+      添加模块 utils.display_tool, 支持更多输出式样和完善的可视化层级
+      添加模块 utils.easy_function, 删除部分无用函数
+      添加模块 utils.predict_eval, 重新设计的完整的评估框架, 支持序列标注评估及评估指标平均
+      添加模块 utils.word_vector, 优化部分逻辑, 支持文档级词向量转化
+      添加模块 pytorch.tune, 放置调参相关函数
+  * 2 PyTorch版本支持更新到1.2.0
+      由于新版本在mask和Transformer上的调整, 已无法支持1.2以下的版本
+    3 删除 pytorch.base
+      迁移基类至 <pytorch.exec.base>
+      迁移部分函数至 utils.easy_function
+  * 4 优化 pytorch.layer 中的部分层
+      删除所有层的 init_weight() 函数
+      将所有seq_len输入调整为mask输入
+      重写层 pytorch.layer.EmbeddingLayer, 现可用作pytorch的标准层级
+      优化层 pytorch.layer.SoftmaxLayer, 使用LogSoftmax代替Softmax, 以适应损失函数NLLLoss
+      重写层 pytorch.layer.CNNLayer, 修复mask操作可能导致的问题, 支持自定义激活函数, 删除stride参数
+      重写层 pytorch.layer.RNNLayer, 适应新的pack函数, 简化操作逻辑
+  * 5 优化 pytorch.model 中的部分模型
+      优化模型 pytorch.model.CNNModel, 适应新的EmbeddingLayer & CNNLayer
+      优化模型 pytorch.model.RNNModel, 适应新的EmbeddingLayer & RNNLayer
+  * 6 优化 pytorch.exec 中的部分方法与逻辑
+      删除 data_dict 数据读入方式, 改用参数形式
+      优化基础方法 pytorch.exec.exec, 适应新的模型设计和utils工具包, 删除部分冗杂函数以简化调用, 优化内存空间使用
+  * 7 移动部分功能至 pytorch.tune
+      重写函数 pytorch.tune.average_several_run(), 支持使用多块GPU并行完成多个独立训练
+    8 调整模块 utils.easy_function
+      优化函数 utils.easy_function.one_hot(), 适应多维度的矩阵转化
+      创建函数 utils.easy_function.len_to_mask() & mask_to_len(), 提供mask与seq_len的相互转化
+
+Version 0.12
+    1 为RNN提供tanh/LSTM/GRU三种模型支持
+      更名参数 base.GRU_enable 为 base.rnn_type
+      修复 layer.RNN_layer() 中关于0矩阵截取和填充的问题
+    2 提供参数 base.space_turbo 控制GPU空间换时间的加速功能
+    3 PyTorch版本支持更新到1.1.0
+    4 更新交叉验证函数, 添加 base.order_fold() 方法, 并提升两种方法的效率
+  * 5 优化Transformer
+      调整Transformer所有函数的易用性, 并提供参数初始化函数
+      修复部分维度和mask中存在的错误
+      加快Transformer运行速度
+
+Version 0.11
+  * 1 逻辑优化和速度优化, 降低50%系统内存占用空间并提升超过2倍的运行速度
+      修复数据读取异常消耗内存的问题
+      优化数据读取方式及与GPU的交互方式, 使用略高的显存消耗再次加速运行
+      删除 base.cuda_enable 参数, 添加函数 exec._model_to_cuda(), 优化模型导入GPU的方式
+  * 2 支持模型参数初始化
+      添加函数 CNN_model.init_weight(), 为CNN模型提供权重初始化
+      添加函数 RNN_model.init_weight(), 为RNN模型提供权重初始化
+    3 添加参数 base.data_shuffle, 支持打乱数据操作
+  * 4 支持Transformer
+      添加参数 base.n_head
+      创建多头注意力层 layer.multi_head_attention_layer()
+      创建位置信息层 layer.positional_embedding_layer()
+      创建Transformer层 layer.transformer_layer()
+      创建Transformer模型 model.transformer_model()
+      创建Transformer模型执行函数 exec.transformer_classify()
+    5 调整 base.embedding_layer() 至 layer.embedding_layer()
+    6 创建函数 layer.get_mask(), 提取mask相关部分并更新相关层和模型
+
+Version 0.10
+  * 1 代码结构调整, 拆分为 {base/layer/model/exec} 四个模块
+      添加 {contrib} 模块存放扩展模型
+      在 {exec} 下添加执行模块基类 <exec>
+      更名层 <LSTM_layer> 为 <RNN_layer>
+      更名模型 <RNN_classify> 为 <RNN_model>
+  * 2 支持CNN
+      创建CNN层 <CNN_layer>, 并提供权重初始化
+      创建CNN模型 <CNN_model>
+      创建CNN分类模型 <CNN_classify>
+  * 3 添加单机多GPU并行支持
+      添加参数 base.n_gpu
+      更新 <exec>, 支持多GPU并行
+    4 调整内部运行函数对复杂模型的适用性
+      更新 exec._run_train() & exec._run_test()
+    5 调整RNN层封装功能, 去除内部封装Attention选择
+    6 调整 {layer} 中的所有层级, 支持无长度输入以增强适用性
+
+Version 0.9
+    1 修复输出显示
+      修复自适应显示导致溢出的问题
+      修复k折交叉验证时, 输出类别数量错误的问题
+      修复功能性函数的输出异常
+      添加函数 RNN_classify._init_display(), 取消col/width参数, 强制自适应
+    2 修复序列标注模型中必须使用投票机制的问题
+    3 调整类命名, 更符合类的实际定位(层-模型-分类/序列执行)
+      更名基类 <RNN> 为 <base>
+      更名自注意力机制层 <self_attention_model> 为 <self_attention_layer>
+      更名LSTM层 <LSTM_model> 为 <LSTM_layer>
+  * 4 创建Softmax层/全连接层 <softmax_layer>
+      更新模型 <RNN_classify>
+  * 5 支持层级参数初始化
+      添加函数 LSTM_layer.init_weight(), 为LSTM层提供权重初始化
+      添加函数 self_attention_layer.init_weight(), 为自注意力层提供权重初始化
+      添加函数 softmax_layer.init_weight(), 为Softmax层提供权重初始化
+
+Version 0.8
+    1 合并分类模型和序列标注模型
+      创建合并模型 <RNN_model>
+      删除分类模型 <RNN_classify_model> 和序列标注模型 <RNN_sequence_model>
+    2 调整分类模型中函数的适用性, 避免在序列标注模型中重写
+      优化函数 RNN_classify.run_train() & RNN_classify.run_test()
+      删除函数 RNN_sequence.run_train() & RNN_sequence.run_test()
+    3 私有化行函数
+      更名函数 RNN_classify.run_train()RNN_classify._run_train(), 其它函数同样
+    4 调整功能函数对运行函数的输入方式
+      更新函数 RNN.average_several_run() & RNN.grid_search(), 适应运行函数可能的多种输入
+    5 修复无法取某一类别的P/R/F作为模型评判标准的问题
+      更新全部predict_analysis相关机制和输出
+
+Version 0.7
+    1 修复层次分类中使用Attention的nan值问题
+  * 2 创建序列标注模型 <RNN_sequence_model>
+      添加函数 RNN_sequence_model.forward(), 构造前向网络结构
+  * 3 创建序列标注执行模型 <RNN_sequence>
+      添加函数 RNN.vote_sequence(), 为重复数据投票
+      重写函数 RNN_sequence.run_train(), 运行训练数据部分
+      重写函数 RNN_sequence.run_test(), 运行测试数据部分
+      重写函数 RNN_sequence.run(), 完成训练-测试运行部分
+  * 4 PyTorch版本支持更新到1.0.0
+
+Version 0.6
+  * 1 分类模型支持层次分类
+      删除参数 RNN.max_seq_len和RNN.max_sen_len
+      添加参数 RNN.n_hierarchy, 控制层次数量
+      优化模型 <RNN_classify_model>, 自适应层次分类和序列长度数据输入
+  * 2 合并LSTM模型和GRU模型
+      创建RNN模型 <LSTM_model>, 内置Attention支持
+      整合排序和层次适应
+      删除GRU模型 <GRU_model>
+      更新模型 <RNN_classify_model>
+    3 更名注意力机制模型为 <self_attention_model>
+    4 添加参数 RNN.cuda_enable, 适应CPU运行
+
+Version 0.5
+  * 1 优化模型运行方式, 提取具体运行部分
+      添加函数 RNN_classify.run(), 完成训练-测试运行部分
+      优化函数 RNN_classify.train_test(), 运行训练-测试数据
+      优化函数 RNN_classify.cross_validation(), 运行单一训练集的交叉验证
+    2 调整模型可视化输出及控制参数位置
+      添加参数 RNN_classify.class_name & RNN_classify.col & RNN_classify.width
+      更新模型 <RNN_classify>, 去除模型运行部分所需要的输出控制参数, 添加可视输出等级verbose
+    3 添加函数 RNN.average_several_run(), 支持多次模型运行取平均
+    4 支持网格搜索调参
+      添加函数 RNN.attributes_from_dict(), 调整参数
+      添加函数 RNN.grid_search(), 参数网格搜索
+
+Version 0.4
+  * 1 创建LSTM模型 <LSTM_model> 和GRU模型 <GRU_model>
+      封装LSTM和GRU的执行过程和输出
+      更新模型 <RNN_classify_model>, 调用LSTM模型和GRU模型
+    2 支持L2正则
+      添加参数 default_args().l2_reg
+      更新模型 <RNN_classify>, 在优化函数部分添加L2正则
+    3 优化默认参数函数 default_args() 的使用
+      调用时取默认参数函数并修改, <RNN> 不再提供参数默认值
+
+Version 0.3
+  * 1 支持Attention操作
+      创建注意力机制模型 <self_attention>
+      添加参数 default_args().use_attention
+      更新模型 <RNN_classify_model>, 支持Attention
+    2 优化模型 <RNN_classify>, 调整运行函数的适用性
+    3 模型运行函数均采用最优值代替结束值作为输出
+
+Version 0.2
+    1 添加Embedding支持
+      添加函数 RNN.embedding_layer(), 设置embedding矩阵
+      更新模型 <RNN_classify_model>, 使用emb_type参数判断模式
+    2 更新模型 <RNN_classify_model>, 添加Dropout层
+    3 创建默认参数函数 default_args(), 为模型指定默认参数
+
+Version 0.1
+  * 1 创建基类 <RNN>
+      添加函数 RNN.create_data_loader(), 用以导入数据
+      添加函数 RNN.mod_fold(), k折交叉
+  * 2 创建分类模型 <RNN_classify_model>
+      添加函数 RNN_classify_model.forward(), 构造前向网络结构
+  * 3 创建分类执行模型 <RNN_classify>
+      添加函数 RNN_classify.run_train(), 运行训练数据部分
+      添加函数 RNN_classify.run_test(), 运行测试数据部分
+      添加函数 RNN_classify.train_test(), 运行训练-测试数据
+      添加函数 RNN_classify.train_itself(), 运行单一训练集
+      添加函数 RNN_classify.cross_validation(), 运行单一训练集的交叉验证

@@ -51,7 +51,7 @@ Version 1.0 by KzXuan
       emb_matrix = np.load("...")
       torch_emb_mat = layer.EmbeddingLayer(emb_matrix, 'const')
       # 查询下标获取完整inputs
-  outputs = torch_emb_mat(inputs)
+      outputs = torch_emb_mat(inputs)
       ```
 
     * SoftmaxLayer(input_size, output_size)
@@ -61,13 +61,13 @@ Version 1.0 by KzXuan
       **调用时对tensor维度没有要求，调用后请使用NLLLoss计算损失。** 或可以使用Linear层和CrossEntropyLoss的组合计算损失。
   
       ```python
-    # Softmax层进行二分类
+      # Softmax层进行二分类
       sl = layer.SoftmaxLayer(100, 2)
-  # 调用
+      # 调用
       prediction = sl(inputs)
-  ```
+      ```
       
-* CNNLayer(input_size, in_channels, out_channels, kernel_width, act_fun=nn.ReLU)
+    * CNNLayer(input_size, in_channels, out_channels, kernel_width, act_fun=nn.ReLU)
     
       封装的CNN层，支持最大池化和平均池化，支持自定义激活函数。
     
@@ -78,13 +78,13 @@ Version 1.0 by KzXuan
       cnn_set = nn.ModuleList()
       for kw in range(2, 5):
           cnn_set.append(
-          layer.CNNLayer(emb_dim, in_channels=1, out_channels=50, kernel_width=kw)
+              layer.CNNLayer(emb_dim, in_channels=1, out_channels=50, kernel_width=kw)
       )
-  # 将调用后的结果进行拼接
+      # 将调用后的结果进行拼接
       outputs = torch.cat([c(inputs, seq_len, out_type='max') for c in cnn_set], -1)
-  ```
+      ```
     
-* RNNLayer(input_size, n_hidden, n_layer, drop_prob=0., bi_direction=True, mode="LSTM")
+    * RNNLayer(input_size, n_hidden, n_layer, drop_prob=0., bi_direction=True, mode="LSTM")
     
       封装的RNN层，支持tanh/LSTM/GRU，支持单/双向及多层堆叠。
     
@@ -100,11 +100,11 @@ Version 1.0 by KzXuan
       # 第一层GRU取全部输出
       outputs = inputs.reshape(-1, inputs.size(2), inputs.size(3))
       outputs = rnn_stack[0](outputs, seq_len_1, out_type='all')
-    # 第二层GRU取最后一个时间步的输出
+      # 第二层GRU取最后一个时间步的输出
       outputs = outputs.reshape(inputs.size(0), inputs.size(1), -1)
       outputs = rnn_stack[1](outputs, seq_len_2, out_type='last')
       ```
-  2. 模型 **([model.py](./dnnnlp/pytorch/model.py))**
+2. 模型 **([model.py](./dnnnlp/pytorch/model.py))**
 
       * CNNModel(args, emb_matrix=None, kernel_widths=[2, 3, 4])
 
@@ -134,7 +134,7 @@ Version 1.0 by KzXuan
         pred = model(inputs, mask)
         ```
 
-  3. 运行 **([exec.py](./dnnnlp/pytorch/exec.py))**
+3. 运行 **([exec.py](./dnnnlp/pytorch/exec.py))**
 
       * default_args()
 
@@ -151,7 +151,7 @@ Version 1.0 by KzXuan
         args.n_hidden = 100
         args.batch_size = 32
         
-  # 在命令行中传递参数，与程序内修改参数互斥
+        # 在命令行中传递参数，与程序内修改参数互斥
         > python3 demo.py --n_hidden 100 --batch_size 32
         ```
       
@@ -185,7 +185,7 @@ Version 1.0 by KzXuan
 
   ````python
   from dnnnlp.pytorch.model import RNNModel
-from dnnnlp.pytorch.exec import default_args, Classify
+  from dnnnlp.pytorch.exec import default_args, Classify
   
   emb_mat = np.array([...])
   args = default_args()
@@ -196,7 +196,6 @@ from dnnnlp.pytorch.exec import default_args, Classify
   nn = Classify(model, args, train_x, train_y, train_mask, test_x, test_y, test_mask, emb_matrix, class_name)
   nn.cross_validation(fold=10)
   ````
-
 
 </br>
 

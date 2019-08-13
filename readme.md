@@ -39,54 +39,46 @@ Version 1.0 by KzXuan
   | drop_prob     | float | 0.1    | Dropout比例                                          |
   | eval_metric   | str   | 'acc'  | 使用'acc'/'macro'/'micro'/'class1'等设定模型评判标准 |
 
-
 </br>
 
 ## pytorch模块说明
 
 ### 网络层 ([layer.py](./dnnnlp/pytorch/layer.py))
 
-> ### EmbeddingLayer(emb_matrix, emb_type='const')
+> **EmbeddingLayer(emb_matrix, emb_type='const')**
 
+&nbsp;&nbsp;&nbsp;&nbsp;
 Embedding层，将词向量查询矩阵转化成torch内的可用变量。
 
-
-  * 提供None/"const"/"variable"三种模式。
+  * 提供None/"const"/"variable"三种模式，对应无查询矩阵/不可调/可调模式。
 
   * **调用时传入原始输入即可，无需将输入转化成long类型。**
 
-    ```python
-    # 导入已有Embedding矩阵，训练中矩阵不可变
-    emb_matrix = np.load("...")
-    torch_emb_mat = layer.EmbeddingLayer(emb_matrix, 'const')
-    # 查询下标获取完整inputs
-    outputs = torch_emb_mat(inputs)
-    ```
-
-<div style="background-color:#E73522; ">&nbsp;</div>
-<div style="padding:10px; width:100%"><font size=3 face="Verdana">
-  SoftmaxLayer(input_size, output_size)
-</font></div>
-<p style="text-indent:0.5em; margin:15px">
-Embedding层，将词向量查询矩阵转化成torch内的可用变量。
-</p>
-
+```python
+# 导入已有Embedding矩阵，训练中矩阵不可变
+emb_matrix = np.load("...")
+torch_emb_mat = layer.EmbeddingLayer(emb_matrix, 'const')
+# 查询下标获取完整inputs
+outputs = torch_emb_mat(inputs)
+```
 
 </br>
 
+> **SoftmaxLayer(input_size, output_size)**
 
-    * SoftmaxLayer(input_size, output_size)
+&nbsp;&nbsp;&nbsp;&nbsp;
+简单的Softmax层/全连接层，使用LogSoftmax作为激活函数。
 
-      简单的Softmax层/全连接层，使用LogSoftmax作为激活函数。
+  * 调用时对tensor维度没有要求，调用后请使用NLLLoss计算损失。
 
-      **调用时对tensor维度没有要求，调用后请使用NLLLoss计算损失。** 或可以使用Linear层和CrossEntropyLoss的组合计算损失。
+```python
+# Softmax层进行二分类
+sl = layer.SoftmaxLayer(100, 2)
+# 调用
+prediction = sl(inputs)
+```
 
-      ```python
-      # Softmax层进行二分类
-      sl = layer.SoftmaxLayer(100, 2)
-      # 调用
-      prediction = sl(inputs)
-      ```
+</br>
 
     * CNNLayer(input_size, in_channels, out_channels, kernel_width, act_fun=nn.ReLU)
 

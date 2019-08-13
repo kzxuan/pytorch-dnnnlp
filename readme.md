@@ -1,20 +1,28 @@
-# PyTorch-自然语言处理-深度神经网络模型
+## PyTorch-自然语言处理-深度神经网络模型
 
 Version 1.0 by KzXuan
 
+<style>
+  div{ vertical-align: middle; display: table-cell; background-color:#F0F1F5; }
+</style>
+
 **包含了PyTorch实现的CNN, RNN用于NLP领域的分类任务。**
 
-全新设计的模块，优化大量代并降低使用复杂度，修复部分bug，使用mask作为序列长度标识。
+* 全新设计的两大模块
+* 优化大量代码逻辑并降低使用复杂度
+* 更少的内存占用量
+* 使用mask作为序列长度标识
+* 部分bug修复
 
-即将包含：全新的序列标注支持，多GPU并行调参。
+即将包含：新的序列标注支持，多GPU并行调参。
 
 </br>
 
-### 模型说明
+## 说明
 
 * 环境：
-  * Python >= 3.5
-  * PyTorch >= 1.2.0
+
+  python >= 3.5 & pytorch >= 1.2.0
 
 * 超参数说明：
 
@@ -38,23 +46,41 @@ Version 1.0 by KzXuan
 
 </br>
 
-### pytorch模块说明
+## pytorch模块说明
 
-1. 网络层 **([layer.py](./dnnnlp/pytorch/layer.py))**
+### 网络层 ([layer.py](./dnnnlp/pytorch/layer.py))
 
-    * EmbeddingLayer(emb_matrix, emb_type='const')
+<div style="background-color:#E73522; ">&nbsp;</div>
+<div style="padding:10px; width:100%"><font size=3 face="Verdana">
+  EmbeddingLayer(emb_matrix, emb_type='const')
+</font></div>
+<p style="text-indent:0.5em; margin:15px">
+Embedding层，将词向量查询矩阵转化成torch内的可用变量。
+</p>
 
-      Embedding层，将词向量查询矩阵转化成torch内的可用变量，提供None/"const"/"variable"三种模式。
+  * 提供None/"const"/"variable"三种模式。
 
-      **调用时传入原始输入即可，无需将输入转化成long类型。**
+  * **调用时传入原始输入即可，无需将输入转化成long类型。**
 
-      ```python
-      # 导入已有Embedding矩阵，训练中矩阵不可变
-      emb_matrix = np.load("...")
-      torch_emb_mat = layer.EmbeddingLayer(emb_matrix, 'const')
-      # 查询下标获取完整inputs
-      outputs = torch_emb_mat(inputs)
-      ```
+    ```python
+    # 导入已有Embedding矩阵，训练中矩阵不可变
+    emb_matrix = np.load("...")
+    torch_emb_mat = layer.EmbeddingLayer(emb_matrix, 'const')
+    # 查询下标获取完整inputs
+    outputs = torch_emb_mat(inputs)
+    ```
+
+<div style="background-color:#E73522; ">&nbsp;</div>
+<div style="padding:10px; width:100%"><font size=3 face="Verdana">
+  SoftmaxLayer(input_size, output_size)
+</font></div>
+<p style="text-indent:0.5em; margin:15px">
+Embedding层，将词向量查询矩阵转化成torch内的可用变量。
+</p>
+
+
+</br>
+
 
     * SoftmaxLayer(input_size, output_size)
 
@@ -106,7 +132,7 @@ Version 1.0 by KzXuan
       outputs = outputs.reshape(inputs.size(0), inputs.size(1), -1)
       outputs = rnn_stack[1](outputs, seq_len_2, out_type='last')
       ```
-2. 模型 **([model.py](./dnnnlp/pytorch/model.py))**
+1. 模型 **([model.py](./dnnnlp/pytorch/model.py))**
 
     * CNNModel(args, emb_matrix=None, kernel_widths=[2, 3, 4])
 
@@ -136,7 +162,7 @@ Version 1.0 by KzXuan
       pred = model(inputs, mask)
       ```
 
-3. 运行 **([exec.py](./dnnnlp/pytorch/exec.py))**
+2. 运行 **([exec.py](./dnnnlp/pytorch/exec.py))**
 
     * default_args()
 

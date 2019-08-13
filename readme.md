@@ -46,13 +46,10 @@ Version 1.0 by KzXuan
 
 ### 网络层 ([layer.py](./dnnnlp/pytorch/layer.py))
 
-<div style="background-color:#E73522; vertical-align: middle; display: table-cell;">&nbsp;</div>
-<div style="padding:10px; width:100%； vertical-align: middle; display: table-cell; background-color:#F0F1F5;"><font size=3 face="Verdana">
-  EmbeddingLayer(emb_matrix, emb_type='const')
-</font></div>
-<p style="text-indent:0.5em; margin:15px">
+> <font size=10> EmbeddingLayer(emb_matrix, emb_type='const')</font>
+
 Embedding层，将词向量查询矩阵转化成torch内的可用变量。
-</p>
+
 
   * 提供None/"const"/"variable"三种模式。
 

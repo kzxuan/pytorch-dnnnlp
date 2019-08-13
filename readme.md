@@ -2,10 +2,6 @@
 
 Version 1.0 by KzXuan
 
-<style>
-  div{ vertical-align: middle; display: table-cell; background-color:#F0F1F5; }
-</style>
-
 **包含了PyTorch实现的CNN, RNN用于NLP领域的分类任务。**
 
 * 全新设计的两大模块
@@ -50,8 +46,8 @@ Version 1.0 by KzXuan
 
 ### 网络层 ([layer.py](./dnnnlp/pytorch/layer.py))
 
-<div style="background-color:#E73522; ">&nbsp;</div>
-<div style="padding:10px; width:100%"><font size=3 face="Verdana">
+<div style="background-color:#E73522; vertical-align: middle; display: table-cell;">&nbsp;</div>
+<div style="padding:10px; width:100%； vertical-align: middle; display: table-cell; background-color:#F0F1F5;"><font size=3 face="Verdana">
   EmbeddingLayer(emb_matrix, emb_type='const')
 </font></div>
 <p style="text-indent:0.5em; margin:15px">

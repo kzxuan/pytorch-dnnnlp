@@ -110,7 +110,7 @@ Version 1.0 by KzXuan
 
         常规RNN层次模型的封装，支持多层次的分类，模型返回预测概率。
 
-  3. 运行模块 **([exec.py](./pytorch/exec.py))**
+  3. 运行模块 **([exec.py](./dnnnlp/pytorch/exec.py))**
 
       * default_args()
 
@@ -149,9 +149,11 @@ Version 1.0 by KzXuan
 
       * CNNClassify(args, train_x, train_y, train_mask, test_x=None, test_y=None, test_mask=None, emb_matrix=None, kernel_widths=[2, 3, 4], class_name=None, device_id=0)
 
-        **使用CNN分类的执行模块。**
+        **使用CNN分类的运行模块。**
 
       * RNNClassify(args, train_x, train_y, train_mask, test_x=None, test_y=None, test_mask=None, emb_matrix=None, n_hierarchy=1, n_layer=1, bi_direction=True, mode='LSTM', class_name=None, device_id=0)
+      
+        **使用RNN分类的运行模块。**
 
 </br>
 

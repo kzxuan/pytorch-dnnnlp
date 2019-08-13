@@ -46,7 +46,7 @@ Version 1.0 by KzXuan
 
 ### 网络层 ([layer.py](./dnnnlp/pytorch/layer.py))
 
-> <font size=10> EmbeddingLayer(emb_matrix, emb_type='const')</font>
+> ### EmbeddingLayer(emb_matrix, emb_type='const')
 
 Embedding层，将词向量查询矩阵转化成torch内的可用变量。
 

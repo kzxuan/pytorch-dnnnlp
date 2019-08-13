@@ -190,6 +190,8 @@ args.batch_size = 32
 > python3 demo.py --n_hidden 100 --batch_size 32
 ```
 
+</br>
+
 > **Classify(model, args, train_x, train_y, train_mask, test_x=None, test_y=None, test_mask=None, class_name=None, device_id=0)**
 
 &nbsp;&nbsp;&nbsp;&nbsp;

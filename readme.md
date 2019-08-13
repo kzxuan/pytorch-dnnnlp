@@ -2,9 +2,11 @@
 
 Version 1.0 by KzXuan
 
-**包含了PyTorch实现的CNN, RNN用于NLP领域的分类任务（序列标注任务将在后期重新支持）。**
+**包含了PyTorch实现的CNN, RNN用于NLP领域的分类任务。**
 
+全新设计的模块，优化大量代并降低使用复杂度，修复部分bug，使用mask作为序列长度标识。
 
+即将包含：全新的序列标注支持，多GPU并行调参。
 
 </br>
 
@@ -185,7 +187,7 @@ Version 1.0 by KzXuan
 
 </br>
 
-#### utils模块说明
+### utils模块说明
 
 1. 评估 **([predict_eval.py](./dnnnlp/utils/predict_eval.py))**
 
@@ -229,8 +231,9 @@ Version 1.0 by KzXuan
 
       mask矩阵转序列长度，同时支持numpy和pytorch输入。
 
+</br>
 
-#### 模型功能及使用
+### 模型功能及使用
 
 * 分类
 
@@ -250,7 +253,6 @@ Version 1.0 by KzXuan
 
 </br>
 
-#### 在GPU服务器上的使用
+### 在GPU服务器上的使用
 
-调试阶段，暂不支持，v0.12可用。
-
+调试阶段，暂不支持，历史版本v0.12.3可用。

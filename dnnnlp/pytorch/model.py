@@ -13,13 +13,14 @@ from . import layer
 
 
 class CNNModel(nn.Module):
-    def __init__(self, args, emb_matrix=None, kernel_widths=[2, 3, 4]):
-        """Initilize the model data and layer.
+    def __init__(self, args, emb_matrix=None, kernel_widths=[2, 3, 4], act_fun=nn.ReLU):
+        """Initilize CNN model data and layer.
 
         Args:
             args [dict]: all model arguments
             emb_matrix [np.array]: word embedding matrix
             kernel_widths [list]: list of kernel widths for CNN kernel
+            act_fun [torch.nn.modules.activation]: activation function
         """
         super(CNNModel, self).__init__()
 
@@ -28,7 +29,9 @@ class CNNModel(nn.Module):
 
         self.cnn = nn.ModuleList()
         for kw in kernel_widths:
-            self.cnn.append(layer.CNNLayer(args.emb_dim, 1, args.n_hidden, kw))
+            self.cnn.append(
+                layer.CNNLayer(args.emb_dim, 1, args.n_hidden, kw, act_fun, args.drop_prob)
+            )
 
         self.predict = layer.SoftmaxLayer(args.n_hidden * len(kernel_widths), args.n_class)
 
@@ -55,25 +58,38 @@ class CNNModel(nn.Module):
 
 
 class RNNModel(nn.Module):
-    def __init__(self, args, emb_matrix=None, n_hierarchy=1, n_layer=1, bi_direction=True, mode='LSTM'):
-        """Initilize the model data and layer.
+    def __init__(self, args, emb_matrix=None, n_hierarchy=1, n_layer=1,
+                 bi_direction=True, rnn_type='LSTM', use_attention=False):
+        """Initilize RNN model data and layer.
 
         Args:
             args [dict]: all model arguments
             emb_matrix [np.array]: word embedding matrix
+            n_hierarchy [int]: number of model hierarchy
+            n_layer [int]: number of RNN layer in a hierarchy
+            bi_direction [bool]: use bi-directional model or not
+            rnn_type [str]: choose rnn type with 'tanh'/'LSTM'/'GRU'
+            use_attention [bool]: use attention layer
         """
         super(RNNModel, self).__init__()
 
         self.n_hierarchy = n_hierarchy
         self.bi_direction_num = 2 if bi_direction else 1
+        self.use_attention = use_attention
 
         self.emb_mat = layer.EmbeddingLayer(emb_matrix, args.emb_type)
         self.drop_out = nn.Dropout(args.drop_prob)
 
-        rnn_params = (args.n_hidden, n_layer, args.drop_prob, bi_direction, mode)
+        rnn_params = (args.n_hidden, n_layer, bi_direction, rnn_type, args.drop_prob)
         self.rnn = nn.ModuleList([layer.RNNLayer(args.emb_dim, *rnn_params)])
+        if use_attention:
+            self.att = nn.ModuleList(
+                [layer.SoftAttentionLayer(self.bi_direction_num * args.n_hidden)]
+            )
         for _ in range(self.n_hierarchy - 1):
             self.rnn.append(layer.RNNLayer(self.bi_direction_num * args.n_hidden, *rnn_params))
+            if use_attention:
+                self.att.append(layer.SoftAttentionLayer(self.bi_direction_num * args.n_hidden))
 
         self.predict = layer.SoftmaxLayer(self.bi_direction_num * args.n_hidden, args.n_class)
 
@@ -88,7 +104,9 @@ class RNNModel(nn.Module):
             pred [tensor]: predict of the model (batch_size * n_class)
         """
         inputs = self.emb_mat(inputs)
-        assert inputs.shape[:-1] == mask.shape, ValueError("Dimension match error of 'inputs' and 'mask'.")
+        if mask is not None:
+            assert inputs.shape[:-1] == mask.shape, ValueError("Dimension match error of 'inputs' and 'mask'.")
+
         _, *max_seq_len, _ = inputs.size()
         max_seq_len = max_seq_len[::-1]
         assert len(max_seq_len) == self.n_hierarchy, ValueError("Hierarchy match error of 'inputs'.")
@@ -97,8 +115,58 @@ class RNNModel(nn.Module):
         for hi in range(self.n_hierarchy):
             outputs = outputs.reshape(-1, max_seq_len[hi], outputs.size(-1))
             mask = mask.reshape(-1, max_seq_len[hi])
-            outputs = self.rnn[hi](outputs, mask, out_type='last')
+
+            if self.use_attention:
+                outputs = self.rnn[hi](outputs, mask, out_type='all')
+                outputs = self.att[hi](outputs, mask)
+            else:
+                outputs = self.rnn[hi](outputs, mask, out_type='last')
+
             mask = (mask.sum(-1) != 0).int()
+
+        pred = self.predict(outputs)
+        return pred
+
+
+class TransformerModel(nn.Module):
+    def __init__(self, args, emb_matrix=None, n_layer=6, n_head=8):
+        """Initilize transfomer model data and layer.
+
+        Args:
+            args [dict]: all model arguments
+            emb_matrix [np.array]: word embedding matrix
+            n_layer [int]: number of RNN layer in a hierarchy
+        """
+        super(TransformerModel, self).__init__()
+
+        self.n_layer = n_layer
+
+        self.emb_mat = layer.EmbeddingLayer(emb_matrix, args.emb_type)
+        self.drop_out = nn.Dropout(args.drop_prob)
+
+        self.trans = nn.ModuleList(
+            [layer.TransformerLayer(args.emb_dim, n_head) for _  in range(n_layer)]
+        )
+        self.predict = layer.SoftmaxLayer(args.emb_dim, args.n_class)
+
+    def forward(self, inputs, mask=None):
+        """Forward propagation.
+        Args:
+            inputs [tensor]: input tensor (batch_size * max_seq_len * input_size)
+            mask [tensor]: mask matrix (batch_size * max_seq_len)
+
+        Returns:
+            pred [tensor]: predict of the model (batch_size * n_class)
+        """
+        inputs = self.emb_mat(inputs)
+        assert inputs.dim() == 3, ValueError("Dimension error of 'inputs', check args.emb_type & emb_dim.")
+        if mask is not None:
+            assert inputs.shape[:2] == mask.shape, ValueError("Dimension match error of 'inputs' and 'mask'.")
+
+        outputs = self.drop_out(inputs)
+        for li in range(self.n_layer - 1):
+            outputs = self.trans[li](outputs, query_mask=mask, out_type='all')
+        outputs = self.trans[-1](outputs, query_mask=mask, out_type='first')
 
         pred = self.predict(outputs)
         return pred

@@ -80,8 +80,52 @@ class SoftmaxLayer(nn.Module):
         return outputs
 
 
+class SoftAttentionLayer(nn.Module):
+    def __init__(self, input_size):
+        """Initilize soft attention layer.
+
+        Args:
+            input_size [int]: embedding dim or the last dim of the input
+        """
+        super(SoftAttentionLayer, self).__init__()
+
+        self.input_size = input_size
+        self.attention = nn.Sequential(
+            nn.Linear(input_size, input_size),
+            nn.Tanh(),
+            nn.Linear(input_size, 1, bias=False),
+        )
+
+    def forward(self, inputs, mask=None):
+        """Forward propagation.
+
+        Args:
+            inputs [tensor]: input tensor (batch_size * max_seq_len * input_size)
+            mask [tensor]: mask matrix (batch_size * max_seq_len)
+
+        Returns:
+            outputs [tensor]: output tensor (batch_size * input_size)
+        """
+        assert inputs.dim() == 3, ValueError("Dimension error of 'inputs'.")
+        assert inputs.size(-1) == self.input_size, ValueError("Dimension error of 'inputs'.")
+        assert mask is None or mask.dim() == 2, ValueError("Dimension error of 'mask'.")
+
+        now_batch_size, max_seq_len, _ = inputs.size()
+        alpha = self.attention(inputs).reshape(now_batch_size, 1, max_seq_len)
+        exp = alpha.exp()
+
+        if mask is not None:
+            exp = exp * mask.unsqueeze(1).float()
+
+        sum_exp = exp.sum(-1, keepdim=True) + 1e-9
+        softmax_exp = exp / sum_exp.expand_as(exp).reshape(now_batch_size, 1, max_seq_len)
+        outputs = torch.bmm(softmax_exp, inputs).squeeze()
+        return outputs
+
+
 class CNNLayer(nn.Module):
-    def __init__(self, input_size, in_channels, out_channels, kernel_width, act_fun=nn.ReLU):
+    def __init__(self, input_size, in_channels, out_channels,
+                 kernel_width, act_fun=nn.ReLU, drop_prob=0.1):
         """Initilize CNN layer.
 
         Args:
@@ -90,14 +134,17 @@ class CNNLayer(nn.Module):
             out_channels [int]: number of channels for outputs
             kernel_width [int]: the width on sequence for the first dim of kernel
             act_fun [torch.nn.modules.activation]: activation function
+            drop_prob [float]: drop out ratio
         """
         super(CNNLayer, self).__init__()
 
+        self.input_size = input_size
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.kernel_width = kernel_width
 
         self.conv = nn.Conv2d(in_channels, out_channels, (kernel_width, input_size))
+        self.drop_out = nn.Dropout(drop_prob)
 
         assert callable(act_fun), TypeError("Type error of 'act_fun', use functions like nn.ReLU/nn.Tanh.")
         self.act_fun = act_fun()
@@ -116,9 +163,9 @@ class CNNLayer(nn.Module):
         """
         # auto extend 3d inputs
         if inputs.dim() == 3:
-            inputs = torch.unsqueeze(inputs, 1)
-            inputs = inputs.repeat(1, self.in_channels, 1, 1)
+            inputs = inputs.unsqueeze(1).repeat(1, self.in_channels, 1, 1)
         assert inputs.dim() == 4 and inputs.size(1) == self.in_channels, ValueError("Dimension error of 'inputs'.")
+        assert inputs.size(-1) == self.input_size, ValueError("Dimension error of 'inputs'.")
 
         now_batch_size, _, max_seq_len, _ = inputs.size()
         assert max_seq_len >= self.kernel_width, ValueError("Dimension error of 'inputs'.")
@@ -133,9 +180,10 @@ class CNNLayer(nn.Module):
         if mask is None:
             mask = torch.ones((now_batch_size, left_len), device=inputs.device)
         assert mask.dim() == 2, ValueError("Dimension error of 'mask'.")
-        mask = torch.unsqueeze(mask[:, -left_len:], 1)
+        mask = mask[:, -left_len:].unsqueeze(1)
 
         outputs = self.conv(inputs)
+        outputs = self.drop_out(outputs)
         outputs = outputs.reshape(-1, self.out_channels, left_len)
 
         outputs = self.act_fun(outputs)  # batch_size * out_channels * left_len
@@ -153,32 +201,32 @@ class CNNLayer(nn.Module):
         elif out_type == 'all':
             outputs = outputs.masked_fill(~mask.bool(), 0)
             outputs = outputs.transpose(1, 2)  # batch_size * left_len * out_channels
-
         return outputs
 
 
 class RNNLayer(nn.Module):
-    def __init__(self, input_size, n_hidden, n_layer, drop_prob=0., bi_direction=True, mode="LSTM"):
+    def __init__(self, input_size, n_hidden, n_layer, bi_direction=True, rnn_type="LSTM", drop_prob=0.1):
         """Initilize RNN layer.
 
         Args:
             input_size [int]: embedding dim or the last dim of the input
             n_hidden [int]: number of hidden layer nodes
             n_layer [int]: number of hidden layers
-            drop_prob [float]: drop out ratio
             bi_direction [bool]: use bi-directional model or not
-            mode [str]: use 'tanh'/'LSTM'/'GRU' for core model
+            rnn_type [str]: choose rnn type with 'tanh'/'LSTM'/'GRU'
+            drop_prob [float]: drop out ratio
         """
         super(RNNLayer, self).__init__()
 
-        mode_model = {'tanh': nn.RNN, 'LSTM': nn.LSTM, 'GRU': nn.GRU}
-        assert mode in mode_model.keys(), ValueError("Value error of 'mode', only accepts 'tanh'/'LSTM'/'GRU'.")
+        models = {'tanh': nn.RNN, 'LSTM': nn.LSTM, 'GRU': nn.GRU}
+        assert rnn_type in models.keys(), ValueError("Value error of 'mode', only accepts 'tanh'/'LSTM'/'GRU'.")
 
+        self.input_size = input_size
         self.n_hidden = n_hidden
         self.n_layer = n_layer
         self.bi_direction_num = 2 if bi_direction else 1
-        self.mode = mode
-        self.rnn = mode_model[mode](
+        self.rnn_type = rnn_type
+        self.rnn = models[rnn_type](
             input_size=input_size,
             hidden_size=n_hidden,
             num_layers=n_layer,
@@ -188,7 +236,7 @@ class RNNLayer(nn.Module):
             bidirectional=bi_direction
         )
 
-    def forward(self, inputs, mask=None, out_type='all'):
+    def forward(self, inputs, mask=None, out_type='last'):
         """Forward propagation.
 
         Args:
@@ -197,12 +245,13 @@ class RNNLayer(nn.Module):
             out_type [str]: use 'all'/'last' to choose
 
         Returns:
-            outputs [tensor]: the last layer output tensor (batch_size * max_seq_len * (bi_direction * n_hidden))
             h_last [tensor]: the last time step output tensor (batch_size * (bi_direction * n_hidden))
+            outputs [tensor]: the last layer output tensor (batch_size * max_seq_len * (bi_direction * n_hidden))
         """
         assert inputs.dim() == 3, ValueError("Dimension error of 'inputs'.")
+        assert inputs.size(-1) == self.input_size, ValueError("Dimension error of 'inputs'.")
         assert mask is None or mask.dim() == 2, ValueError("Dimension error of 'mask'.")
-        assert out_type in ['all', 'last'], ValueError("Value error of 'out_type', only accepts 'all'/'last'.")
+        assert out_type in ['last', 'all'], ValueError("Value error of 'out_type', only accepts 'last'/'all'.")
 
         # convert mask to sequence length
         if mask is not None:
@@ -210,10 +259,10 @@ class RNNLayer(nn.Module):
         else:
             seq_len = torch.ones((inputs.size(0),))
         # remove full-zero rows
-        nonzero_index = torch.nonzero(seq_len).reshape(-1)
-        zero_index = torch.nonzero(seq_len == 0).reshape(-1)
+        nonzero_index = seq_len.nonzero().reshape(-1)
+        zero_index = (seq_len == 0).nonzero().reshape(-1)
         # get rebuild index
-        _, re_index = torch.sort(torch.cat((nonzero_index, zero_index)), descending=False)
+        _, re_index = torch.cat((nonzero_index, zero_index)).sort(descending=False)
 
         inputs = inputs.index_select(0, nonzero_index)
         seq_len = seq_len.index_select(0, nonzero_index)
@@ -221,23 +270,147 @@ class RNNLayer(nn.Module):
 
         self.rnn.flatten_parameters()
         inputs = nn.utils.rnn.pack_padded_sequence(inputs, seq_len, batch_first=True, enforce_sorted=False)
-        if self.mode == 'tanh' or self.mode == 'GRU':
+        if self.rnn_type == 'tanh' or self.rnn_type == 'GRU':
             outputs, h_last = self.rnn(inputs)
-        elif self.mode == 'LSTM':
+        elif self.rnn_type == 'LSTM':
             outputs, (h_last, _) = self.rnn(inputs)
 
-        if out_type == 'all':
-            outputs, _ = nn.utils.rnn.pad_packed_sequence(outputs, batch_first=True, total_length=max_seq_len)
-            # pad full-zero rows back and rebuild
-            outputs = F.pad(outputs, (0, 0, 0, 0, 0, zero_index.size(0)))
-            outputs = outputs.index_select(0, re_index)
-            return outputs  # batch_size * max_seq_len * (bi_direction * n_hidden)
-        elif out_type == 'last':
+        if out_type == 'last':
             h_last = h_last.reshape(self.n_layer, self.bi_direction_num, now_batch_size, self.n_hidden)
             h_last = h_last[-1].transpose(0, 1).reshape(now_batch_size, self.bi_direction_num * self.n_hidden)
             # pad full-zero rows back and rebuild
             h_last = F.pad(h_last, (0, 0, 0, zero_index.size(0)))
             h_last = h_last.index_select(0, re_index)
             return h_last  # batch_size * (bi_direction * n_hidden)
+        elif out_type == 'all':
+            outputs, _ = nn.utils.rnn.pad_packed_sequence(outputs, batch_first=True, total_length=max_seq_len)
+            # pad full-zero rows back and rebuild
+            outputs = F.pad(outputs, (0, 0, 0, 0, 0, zero_index.size(0)))
+            outputs = outputs.index_select(0, re_index)
+            return outputs  # batch_size * max_seq_len * (bi_direction * n_hidden)
 
 
+class MultiheadAttentionLayer(nn.Module):
+    def __init__(self, input_size, n_head=8, drop_prob=0.1):
+        """Initilize multi-head attention layer.
+
+        Args:
+            input_size [int]: embedding dim or the last dim of the input
+            n_head [int]: number of attention heads
+            drop_prob [float]: drop out ratio
+        """
+        super(MultiheadAttentionLayer, self).__init__()
+
+        self.input_size = input_size
+        self.attention = nn.MultiheadAttention(input_size, n_head, drop_prob)
+
+    def forward(self, query, key=None, value=None, query_mask=None, key_mask=None):
+        """Forward propagation.
+
+        Args:
+            query [tensor]: query tensor (batch_size * max_seq_len_query * input_size)
+            key [tensor]: key tensor (batch_size * max_seq_len_key * input_size)
+            value [tensor]: value tensor (batch_size * max_seq_len_key * input_size)
+            query_mask [tensor]: query mask matrix (batch_size * max_seq_len_query)
+            key_mask [tensor]: key mask matrix (batch_size * max_seq_len_query)
+
+        Returns:
+            outputs [tensor]: output tensor (batch_size * max_seq_len_query * input_size)
+        """
+        assert query.dim() == 3, ValueError("Dimension error of 'query'.")
+        assert query.size(-1) == self.input_size, ValueError("Dimension error of 'query'.")
+        # set key = query
+        if key is None:
+            key, key_mask = query, query_mask
+        assert key.dim() == 3, ValueError("Dimension error of 'key'.")
+        assert key.size(-1) == self.input_size, ValueError("Dimension error of 'key'.")
+        # set value = key
+        value = key if value is None else value
+        assert value.dim() == 3, ValueError("Dimension error of 'value'.")
+        assert value.size(-1) == self.input_size, ValueError("Dimension error of 'value'.")
+
+        assert query.size(0) == key.size(0) == value.size(0), ValueError("Dimension match error.")
+        assert key.size(1) == value.size(1), ValueError("Dimension match error of 'key' and 'value'.")
+        assert query.size(2) == key.size(2) == value.size(2), ValueError("Dimension match error.")
+
+        if query_mask is not None:
+            assert query_mask.dim() == 2, ValueError("Dimension error of 'query_mask'.")
+            assert query_mask.shape == query.shape[:2], ValueError("Dimension match error of 'query' and 'query_mask'.")
+
+        # auto generate full-one mask
+        if key_mask is None:
+            key_mask = torch.ones(key.shape[:2], device=query.device)
+        assert key_mask.dim() == 2, ValueError("Dimension error of 'key_mask'.")
+        assert key_mask.shape == key.shape[:2], ValueError("Dimension match error of 'key' and 'key_mask'.")
+
+        # transpose dimension batch_size and max_seq_len
+        query, key, value = query.transpose(0, 1), key.transpose(0, 1), value.transpose(0, 1)
+        outputs, _ = self.attention(query, key, value, key_padding_mask=~key_mask.bool())
+        # transpose back
+        outputs = outputs.transpose(0, 1)
+        if query_mask is not None:
+            query_mask = query_mask.unsqueeze(2)
+            outputs = outputs.masked_fill(~query_mask.bool(), 0)
+        return outputs
+
+
+class TransformerLayer(nn.Module):
+    def __init__(self, input_size, n_head=8, feed_dim=None, drop_prob=0.1):
+        """Initilize transformer layer.
+
+        Args:
+            input_size [int]: embedding dim or the last dim of the input
+            n_head [int]: number of attention heads
+            feed_dim [int]: hidden matrix dimension
+            drop_prob [float]: drop out ratio
+        """
+        super(TransformerLayer, self).__init__()
+
+        self.input_size = input_size
+        self.feed_dim = 4 * self.input_size if feed_dim is None else feed_dim
+
+        self.attention = MultiheadAttentionLayer(input_size, n_head, drop_prob)
+        self.drop_out_1 = nn.Dropout(drop_prob)
+        self.norm_1 = nn.LayerNorm(input_size)
+        self.linear_1 = nn.Linear(input_size, self.feed_dim)
+        self.drop_out_2 = nn.Dropout(drop_prob)
+        self.linear_2 = nn.Linear(self.feed_dim, input_size)
+        self.drop_out_3 = nn.Dropout(drop_prob)
+        self.norm_2 = nn.LayerNorm(input_size)
+
+    def forward(self, query, key=None, value=None, query_mask=None, key_mask=None, out_type='first'):
+        """Forward propagation.
+
+        Args:
+            query [tensor]: query tensor (batch_size * max_seq_len_query * input_size)
+            key [tensor]: key tensor (batch_size * max_seq_len_key * input_size)
+            value [tensor]: value tensor (batch_size * max_seq_len_key * input_size)
+            query_mask [tensor]: query mask matrix (batch_size * max_seq_len_query)
+            key_mask [tensor]: key mask matrix (batch_size * max_seq_len_query)
+            out_type [str]: use 'first'/'all' to choose
+
+        Returns:
+            outputs [tensor]: output tensor (batch_size * input_size)
+                              or (batch_size * max_seq_len_query * input_size)
+        """
+        assert query.dim() == 3, ValueError("Dimension error of 'query'.")
+        assert query.size(-1) == self.input_size, ValueError("Dimension error of 'query'.")
+        assert out_type in ['first', 'all'], ValueError("Value error of 'out_type', only accepts 'first'/'all'.")
+
+        outputs = self.attention(query, key, value, query_mask, key_mask)
+        # residual connection
+        outputs = query + self.drop_out_1(outputs)
+        outputs = self.norm_1(outputs)
+
+        temp = self.linear_2(self.drop_out_2(F.relu(self.linear_1(outputs))))
+        # residual connection
+        outputs = outputs + self.drop_out_3(temp)
+        outputs = self.norm_2(outputs)
+
+        if query_mask is not None:
+            query_mask = query_mask.unsqueeze(2)
+            outputs = outputs.masked_fill(~query_mask.bool(), 0)
+
+        if out_type == 'first':
+            outputs = outputs[:, 0, :]
+        return outputs

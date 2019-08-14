@@ -111,12 +111,13 @@ class exec(object):
         return loader
 
 
-class classify(exec):
-    def __init__(self, args, train_x, train_y, train_mask, test_x=None,
+class Classify(exec):
+    def __init__(self, model, args, train_x, train_y, train_mask, test_x=None,
                  test_y=None, test_mask=None, class_name=None, device_id=0):
         """Initilize classification method.
 
         Args:
+            model [nn.Module]: a standart pytorch model
             args [dict]: all model arguments
             train_x [np.array/tensor]: training data
             train_y [np.array/tensor]: training label
@@ -132,6 +133,8 @@ class classify(exec):
         self.class_name = class_name
         self.device_id = device_id
         self.device = torch.device(device_id) if self.n_gpu and self.space_turbo else torch.device("cpu")
+        self.model = model
+        self._model_initilize()
 
         self.train_x = torch.as_tensor(train_x, dtype=torch.float, device=self.device)
         self.train_y = torch.as_tensor(train_y, dtype=torch.long, device=self.device)
@@ -144,7 +147,7 @@ class classify(exec):
             self.test_mask = torch.as_tensor(test_mask, dtype=torch.int, device=self.device)
 
         em = "macro" if self.eval_metric == "acc" else self.eval_metric
-        self.table_col = ["iter", "loss"] + [em + e for e in ['-p', '-r', '-f']] + ["acc", "correct"]
+        self.display_col = ["iter", "loss"] + [em + e for e in ['-p', '-r', '-f']] + ["acc", "correct"]
 
     def _model_initilize(self):
         """Given initilize fuction for model.
@@ -231,7 +234,7 @@ class classify(exec):
         )
 
         results = []
-        ptable = table(self.table_col)
+        ptable = table(self.display_col)
         for it in range(1, self.iter_times + 1):
             loss = self._run_train(train_loader)
             pred, ty = self._run_test(test_loader)
@@ -281,7 +284,7 @@ class classify(exec):
             self.model.load_state_dict(self.model_init)
 
             results = []
-            ptable = table(self.table_col)
+            ptable = table(self.display_col)
             for it in range(1, self.iter_times + 1):
                 loss = self._run_train(train_loader)
                 pred, ty = self._run_test(test_loader)
@@ -300,59 +303,6 @@ class classify(exec):
             kf_avg.append(best_evals)
 
         avg_evals = pe.average(*kf_avg)
-        ptable = table(['avg'] + self.table_col[1:])
+        ptable = table(['avg'] + self.display_col[1:])
         ptable.row(avg_evals)
         return avg_evals
-
-
-class CNNClassify(classify):
-    def __init__(self, args, train_x, train_y, train_mask=None, test_x=None, test_y=None, test_mask=None,
-                 emb_matrix=None, kernel_widths=[2, 3, 4], class_name=None, device_id=0):
-        """Initilize CNN classification.
-
-        Args:
-            args [dict]: all model arguments
-            train_x [np.array/tensor]: training data
-            train_y [np.array/tensor]: training label
-            train_mask [np.array/tensor]: training mask
-            test_x [np.array/tensor]: testing data
-            test_y [np.array/tensor]: testing label
-            test_mask [np.array/tensor]: testing mask
-            emb_matrix [np.array]: word embedding matrix (need emb_type!=None)
-            kernel_widths [list]: list of kernel widths for CNN kernel
-            class_name [list]: name of each class
-            device_id [int]: CPU device for -1, and GPU device for 0/1/...
-        """
-        classify.__init__(
-            self, args, train_x, train_y, train_mask, test_x, test_y, test_mask, class_name, device_id
-        )
-
-        self.model = model.CNNModel(args, emb_matrix, kernel_widths)
-        self._model_initilize()
-
-
-class RNNClassify(classify):
-    def __init__(self, args, train_x, train_y, train_mask=None, test_x=None, test_y=None,
-                 test_mask=None, emb_matrix=None, n_hierarchy=1, n_layer=1, bi_direction=True,
-                 mode='LSTM', class_name=None, device_id=0):
-        """Initilize CNN classification.
-
-        Args:
-            args [dict]: all model arguments
-            train_x [np.array/tensor]: training data
-            train_y [np.array/tensor]: training label
-            train_mask [np.array/tensor]: training mask
-            test_x [np.array/tensor]: testing data
-            test_y [np.array/tensor]: testing label
-            test_mask [np.array/tensor]: testing mask
-            emb_matrix [np.array]: word embedding matrix (need emb_type!=None)
-            kernel_widths [list]: list of kernel widths for CNN kernel
-            class_name [list]: name of each class
-            device_id [int]: CPU device for -1, and GPU device for 0/1/...
-        """
-        classify.__init__(
-            self, args, train_x, train_y, train_mask, test_x, test_y, test_mask, class_name, device_id
-        )
-
-        self.model = model.RNNModel(args, emb_matrix, n_hierarchy, n_layer, bi_direction, mode)
-        self._model_initilize()

@@ -83,13 +83,32 @@ prediction = sl(inputs)
 
 <br>
 
-> **CNNLayer(input_size, in_channels, out_channels, kernel_width, act_fun=nn.ReLU)**
+> **SoftAttentionLayer(input_size)** <br>
+>> forward(inputs, mask=None)
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+简单的Attention层，为序列上的每一个位置生成权重并加和。
+
+  * 调用时需要传入一个三位的inputs和二维的mask[可选]来保证模型的正常运行。
+
+```python
+# 注意力机制
+sal = SoftAttentionLayer(input_size)
+# 调用
+outputs = sal(inputs)
+```
+
+<br>
+
+> **CNNLayer(input_size, in_channels, out_channels, kernel_width, act_fun=nn.ReLU)** <br>
+>> forward(inputs, mask=None, out_type='max')
 
 &nbsp;&nbsp;&nbsp;&nbsp;
 封装的CNN层，支持最大池化和平均池化，支持自定义激活函数。
 
-  * **调用时需要传入一个四维的inputs来保证模型的正常运行。** 若传入的inputs为三维，会自动添加一个第二维，并在第二维上复制in_channels次。
-  * 可选择输出模式"max"/"mean"/"all"来分别得到最大池化后的输出，平均池化后的输出或原始的全部输出。
+  * **调用时需要传入一个四维的inputs和二维的mask[可选]来保证模型的正常运行。**
+  * 若传入的inputs为三维，会自动添加一个第二维，并在第二维上复制in_channels次。
+  * 可选择输出模式'max'/'mean'/'all'来分别得到最大池化后的输出，平均池化后的输出或原始的全部输出。
 
 ```python
 # 创建卷积核宽度分别为2、3、4的且通道数为50的CNN集合
@@ -104,22 +123,21 @@ outputs = torch.cat([c(inputs, seq_len, out_type='max') for c in cnn_set], -1)
 
 <br>
 
-> **RNNLayer(input_size, n_hidden, n_layer, drop_prob=0., bi_direction=True, rnn_type="LSTM")**
-
->> forward()
+> **RNNLayer(input_size, n_hidden, n_layer, drop_prob=0., bi_direction=True, rnn_type='LSTM')** <br>
+>> forward(inputs, mask=None, out_type='last')
 
 &nbsp;&nbsp;&nbsp;&nbsp;
 封装的RNN层，支持tanh/LSTM/GRU，支持单/双向及多层堆叠。
 
-  * **调用时需要传入一个三维的inputs来保证模型的正常运行。**
-  * 可选择输出模式"all"/"last"来分别得到最后一层的全部隐层输出，或最后一层的最后一个时间步的输出。
+  * **调用时需要传入一个三维的inputs和二维的mask[可选]来保证模型的正常运行。**
+  * 可选择输出模式'last'/'all'来分别得到最后一层的最后一个时间步的输出，或最后一层的全部隐层输出。
 
 ```python
 # 创建堆叠式的两层GRU模型
 rnn_stack = nn.ModuleList()
 for _ in range(2):
     rnn_stack.append(
-    layer.RNNLayer(input_size, n_hidden=50, n_layer=1, drop_prob=0.1, bi_direction=True, rnn_type="GRU")
+    layer.RNNLayer(input_size, n_hidden=50, n_layer=1, drop_prob=0.1, bi_direction=True, rnn_type='GRU')
 )
 # 第一层GRU取全部输出
 outputs = inputs.reshape(-1, inputs.size(2), inputs.size(3))
@@ -131,19 +149,21 @@ outputs = rnn_stack[1](outputs, seq_len_2, out_type='last')
 
 <br>
 
-> **MultiheadAttentionLayer(self, input_size, n_head=8, drop_prob=0.1)**
+> **MultiheadAttentionLayer(self, input_size, n_head=8, drop_prob=0.1)** <br>
+>> forward(query, key=None, value=None, query_mask=None, key_mask=None)
 
 &nbsp;&nbsp;&nbsp;&nbsp;
 多头注意力层，封装pytorch官方提供的nn.MultiheadAttention方法。
 
-  * 使用batch作为数据的第一维。
+  * 使用batch作为数据的第一维，与官方接口不同。
   * 分别为query和key提供mask选项。
+  * **调用时需要传入一个三维的query和二维的query_mask[可选]来保证模型的正常运行。**
   * **单独提供query输入时，key和value复制query的值，key_mask复制query_mask的值。**
   * **提供query和key输入时，value复制key的值。**
 
 
 ```python
-# 利用多头注意力机制
+# 调用多头注意力机制
 mal = layer.MultiheadAttentionLayer(input_size, n_head=8, drop_prob=0.1)
 # 仅提供query和key以及对应的mask矩阵
 outputs = mal(query, key, query_mask=query_mask, key_mask=key_mask)
@@ -151,25 +171,40 @@ outputs = mal(query, key, query_mask=query_mask, key_mask=key_mask)
 
 <br>
 
-> **TransformerLayer(input_size, n_head=8, feed_dim=None, drop_prob=0.1)**
+> **TransformerLayer(input_size, n_head=8, feed_dim=None, drop_prob=0.1)** <br>
+>> forward(query, key=None, value=None, query_mask=None, key_mask=None, out_type='first')
 
 &nbsp;&nbsp;&nbsp;&nbsp;
 封装的Transformer层，使用MultiheadAttentionLayer作为注意力机制层。
 
-  *
+  * **调用遵循MultiheadAttentionLayer的规则。**
+  * 可选择输出模式'first'/'all'来分别得到长度第一个位置的输出，或原始的全部输出。
+
+```python
+# 创建堆叠式的6层Transformer
+trans = nn.ModuleList(
+    [layer.TransformerLayer(args.emb_dim, n_head) for _  in range(6)]
+)
+# 前5层取全部输出
+for li in range(5):
+    outputs = trans[li](outputs, query_mask=mask, out_type='all')
+# 最后一层取第一个位置的输出
+outputs = trans[5](outputs, query_mask=mask, out_type='first')
+```
 
 <br>
 
 ### 模型 ([model.py](./dnnnlp/pytorch/model.py))
 
-> **CNNModel(args, emb_matrix=None, kernel_widths=[2, 3, 4])**
+> **CNNModel(args, emb_matrix=None, kernel_widths=[2, 3, 4])** <br>
+>> forward(inputs, mask=None)
 
 &nbsp;&nbsp;&nbsp;&nbsp;
 常规CNN模型的封装，模型返回LogSoftmax后的预测概率。
 
   * **支持多种卷积核宽度的同时设置。**
   * 默认使用最大池化获得CNNLayer的输出。
-  * 不支持层级结构。
+  * 不支持层次结构。
 
 ```python
 # 模型初始化
@@ -180,22 +215,44 @@ pred = model(inputs, mask)
 
 <br>
 
-> **RNNModel(args, emb_matrix=None, n_hierarchy=1, n_layer=1, bi_direction=True, mode='LSTM')**
+> **RNNModel(args, emb_matrix=None, n_hierarchy=1, n_layer=1, bi_direction=True, rnn_type='LSTM', use_attention=False)** <br>
+>> forward(inputs, mask=None)
 
 &nbsp;&nbsp;&nbsp;&nbsp;
 常规RNN模型的封装，模型返回LogSoftmax后的预测概率。
 
-  * **支持层次模型。**
-  * 默认在每一层次取最后一层的最后一个时间步的输出。
+  * **支持层次结构。**
+  * 默认使用SoftAttentionLayer作为注意力层。
+  * 若不使用注意力机制，默认在每一层次取最后一层的最后一个时间步的输出。
+  * 若使用注意力机制，默认在每一层次取最后一层的全部输出，再通过注意力层。
 
 ```python
 # 模型初始化
-model = model.RNNModel(args, emb_matrix, n_hierarchy=2, mode='GRU')
+model = model.RNNModel(args, emb_matrix, n_hierarchy=2, rnn_type='GRU')
 # 调用时mask是可选参数
 pred = model(inputs, mask)
 ```
 
 *Tip: 参数n_hierarchy用以控制模型的层次，每个层次会使得消除一个序列长度的维度，例如词-句子层次/句子-文档层次；参数n_layer用以控制每个层次内的RNN层数，每个RNN层将在pytorch内部直接叠加。*
+
+<br>
+
+> **TransformerModel(args, emb_matrix=None, n_layer=6, n_head=8)** <br>
+>> forward(inputs, mask=None)
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+常规Transformer模型的封装，模型返回LogSoftmax后的预测概率。
+
+  * **使用堆叠式的多层TransformerLayer。**
+  * 仅提供一个inputs输入，即TransformerLayer中的query/key/value均会被初始化为inputs。
+  * 不支持层次结构。
+
+```python
+# 模型初始化
+model = model.TransformerModel(args, emb_matrix, n_layer=12, n_head=8)
+# 调用时mask是可选参数
+pred = model(inputs, mask)
+```
 
 <br>
 

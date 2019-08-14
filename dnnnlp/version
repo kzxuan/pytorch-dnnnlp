@@ -18,11 +18,15 @@ Version 1.0
       将所有seq_len输入调整为mask输入
       重写层 pytorch.layer.EmbeddingLayer, 现可用作pytorch的标准层级
       优化层 pytorch.layer.SoftmaxLayer, 使用LogSoftmax代替Softmax, 以适应损失函数NLLLoss
+      优化层 pytorch.layer.SoftAttentionLayer, 原self_attention_layer
       重写层 pytorch.layer.CNNLayer, 修复mask操作可能导致的问题, 支持自定义激活函数, 删除stride参数
       重写层 pytorch.layer.RNNLayer, 适应新的pack函数, 简化操作逻辑
+      重写层 pytorch.layer.MultiheadAttentionLayer, 封装官方提供的注意力机制, 使用batch作为第一维
+      重写层 pytorch.layer.TransformerLayer, 以官方提供的TransformerEncoder为模板, 封装MultiheadAttentionLayer
   * 5 优化 pytorch.model 中的部分模型
       优化模型 pytorch.model.CNNModel, 适应新的EmbeddingLayer & CNNLayer
       优化模型 pytorch.model.RNNModel, 适应新的EmbeddingLayer & RNNLayer
+      优化模型 pytorch.model.TransformerModel, 适应新的EmbeddingLayer & TransformerLayer
   * 6 优化 pytorch.exec 中的部分方法与逻辑
       删除 data_dict 数据读入方式, 改用参数形式
       优化基础方法 pytorch.exec.exec, 适应新的模型设计和utils工具包, 删除部分冗杂函数以简化调用, 优化内存空间使用

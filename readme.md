@@ -12,7 +12,7 @@ Version 1.0 by KzXuan
 
 即将包含：新的序列标注支持，多GPU并行调参。
 
-</br>
+<br>
 
 ## 说明
 
@@ -39,13 +39,14 @@ Version 1.0 by KzXuan
   | drop_prob     | float | 0.1    | Dropout比例                                          |
   | eval_metric   | str   | 'acc'  | 使用'acc'/'macro'/'micro'/'class1'等设定模型评判标准 |
 
-</br>
+<br>
 
 ## pytorch模块说明
 
 ### 网络层 ([layer.py](./dnnnlp/pytorch/layer.py))
 
-> **EmbeddingLayer(emb_matrix, emb_type='const')**
+> **EmbeddingLayer(emb_matrix, emb_type='const')** <br>
+>> forward(inputs)
 
 &nbsp;&nbsp;&nbsp;&nbsp;
 Embedding层，将词向量查询矩阵转化成torch内的可用变量。
@@ -61,14 +62,15 @@ torch_emb_mat = layer.EmbeddingLayer(emb_matrix, 'const')
 outputs = torch_emb_mat(inputs)
 ```
 
-</br>
+<br>
 
-> **SoftmaxLayer(input_size, output_size)**
+> **SoftmaxLayer(input_size, output_size)** <br>
+>> forward(inputs)
 
 &nbsp;&nbsp;&nbsp;&nbsp;
 简单的Softmax层/全连接层，使用LogSoftmax作为激活函数。
 
-  * 调用时对tensor维度没有要求，调用后请使用NLLLoss计算损失。
+  * 调用时对tensor维度没有要求，调用后请使用nn.NLLLoss计算损失。
 
 ```python
 # Softmax层进行二分类
@@ -79,7 +81,7 @@ prediction = sl(inputs)
 
 *Tip: 也可以在模型预测层选择nn.Linear层，并配合nn.CrossEntropyLoss来计算损失。*
 
-</br>
+<br>
 
 > **CNNLayer(input_size, in_channels, out_channels, kernel_width, act_fun=nn.ReLU)**
 
@@ -100,9 +102,11 @@ for kw in range(2, 5):
 outputs = torch.cat([c(inputs, seq_len, out_type='max') for c in cnn_set], -1)
 ```
 
-</br>
+<br>
 
-> **RNNLayer(input_size, n_hidden, n_layer, drop_prob=0., bi_direction=True, mode="LSTM")**
+> **RNNLayer(input_size, n_hidden, n_layer, drop_prob=0., bi_direction=True, rnn_type="LSTM")**
+
+>> forward()
 
 &nbsp;&nbsp;&nbsp;&nbsp;
 封装的RNN层，支持tanh/LSTM/GRU，支持单/双向及多层堆叠。
@@ -115,7 +119,7 @@ outputs = torch.cat([c(inputs, seq_len, out_type='max') for c in cnn_set], -1)
 rnn_stack = nn.ModuleList()
 for _ in range(2):
     rnn_stack.append(
-    layer.RNNLayer(input_size, n_hidden=50, n_layer=1, drop_prob=0.1, bi_direction=True, mode="GRU")
+    layer.RNNLayer(input_size, n_hidden=50, n_layer=1, drop_prob=0.1, bi_direction=True, rnn_type="GRU")
 )
 # 第一层GRU取全部输出
 outputs = inputs.reshape(-1, inputs.size(2), inputs.size(3))
@@ -125,7 +129,36 @@ outputs = outputs.reshape(inputs.size(0), inputs.size(1), -1)
 outputs = rnn_stack[1](outputs, seq_len_2, out_type='last')
 ```
 
-</br>
+<br>
+
+> **MultiheadAttentionLayer(self, input_size, n_head=8, drop_prob=0.1)**
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+多头注意力层，封装pytorch官方提供的nn.MultiheadAttention方法。
+
+  * 使用batch作为数据的第一维。
+  * 分别为query和key提供mask选项。
+  * **单独提供query输入时，key和value复制query的值，key_mask复制query_mask的值。**
+  * **提供query和key输入时，value复制key的值。**
+
+
+```python
+# 利用多头注意力机制
+mal = layer.MultiheadAttentionLayer(input_size, n_head=8, drop_prob=0.1)
+# 仅提供query和key以及对应的mask矩阵
+outputs = mal(query, key, query_mask=query_mask, key_mask=key_mask)
+```
+
+<br>
+
+> **TransformerLayer(input_size, n_head=8, feed_dim=None, drop_prob=0.1)**
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+封装的Transformer层，使用MultiheadAttentionLayer作为注意力机制层。
+
+  *
+
+<br>
 
 ### 模型 ([model.py](./dnnnlp/pytorch/model.py))
 
@@ -145,7 +178,7 @@ model = model.CNNModel(args, emb_matrix, [2, 3])
 pred = model(inputs, mask)
 ```
 
-</br>
+<br>
 
 > **RNNModel(args, emb_matrix=None, n_hierarchy=1, n_layer=1, bi_direction=True, mode='LSTM')**
 
@@ -164,7 +197,7 @@ pred = model(inputs, mask)
 
 *Tip: 参数n_hierarchy用以控制模型的层次，每个层次会使得消除一个序列长度的维度，例如词-句子层次/句子-文档层次；参数n_layer用以控制每个层次内的RNN层数，每个RNN层将在pytorch内部直接叠加。*
 
-</br>
+<br>
 
 ### 运行 ([exec.py](./dnnnlp/pytorch/exec.py))
 
@@ -190,7 +223,7 @@ args.batch_size = 32
 > python3 demo.py --n_hidden 100 --batch_size 32
 ```
 
-</br>
+<br>
 
 > **Classify(model, args, train_x, train_y, train_mask, test_x=None, test_y=None, test_mask=None, class_name=None, device_id=0)**
 
@@ -215,7 +248,7 @@ args.batch_size = 32
 
     (3) cross_validation(fold=10)：k折交叉数据的调用函数
 
-</br>
+<br>
 
 ## utils模块说明
 
@@ -229,7 +262,7 @@ args.batch_size = 32
   * **若标签和预测都为one-hot形式，则输入为二维。**
   * 返回一个包含所有评估指标的字典，各类别评估键值为'class0-p'/'class1-r'/'class2-f'等，宏平均的键值包含'macro-p'/'macro-r'/'macro-f'，微平均则使用'micro-X'，准确率的键值为'acc'。还包含各类别的统计数据，例如'correct'/'pred'/'real'。
 
-</br>
+<br>
 
 > **prfacc2d(y_true, y_pred, mask=None, one_hot=False, ndigits=4)**
 
@@ -240,7 +273,7 @@ args.batch_size = 32
   * 若标签和预测都为one-hot形式，则输入为三维。
   * 返回值同prfacc1d()。
 
-</br>
+<br>
 
 ### 功能函数 ([easy_function.py](./dnnnlp/utils/easy_function.py))
 
@@ -251,7 +284,7 @@ args.batch_size = 32
 
 *Tip: 在pytorch中请使用torch.nn.functional.one_hot()函数。*
 
-</br>
+<br>
 
 > **mold_fold(length, fold=10)**
 
@@ -260,7 +293,7 @@ args.batch_size = 32
 
   * 返回一个列表，列表中的每个元素是一个三元组：(第几折，训练部分下标，测试部分下标)。
 
-</br>
+<br>
 
 > **order_fold(length, fold=10)**
 
@@ -269,21 +302,21 @@ args.batch_size = 32
 
   * 返回值同mold_fold()。
 
-</br>
+<br>
 
 > **len_to_mask(seq_len, max_seq_len)**
 
 &nbsp;&nbsp;&nbsp;&nbsp;
 序列长度转mask矩阵，同时支持numpy和pytorch输入。
 
-</br>
+<br>
 
 > **mask_to_len(mask)**
 
 &nbsp;&nbsp;&nbsp;&nbsp;
 mask矩阵转序列长度，同时支持numpy和pytorch输入。
 
-</br>
+<br>
 
 ### 模型功能及使用
 
@@ -303,7 +336,7 @@ mask矩阵转序列长度，同时支持numpy和pytorch输入。
   nn.cross_validation(fold=10)
   ````
 
-</br>
+<br>
 
 ### 在GPU服务器上的使用
 

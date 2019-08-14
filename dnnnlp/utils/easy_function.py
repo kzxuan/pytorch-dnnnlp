@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Simple fuctions (file, time, numpy)
-Last update: KzXuan, 2019.08.12
+Last update: KzXuan, 2019.08.13
 """
 import numpy as np
 
@@ -80,21 +80,19 @@ def one_hot(arr, n_class=0):
     Returns:
         oh [np.array]: numpy array with one-hot expression
     """
-    import numpy as np
-
     if arr is None:
         return None
-    if isinstance(arr, list):
+    if isinstance(arr, list) or isinstance(arr, np.ndarray):
         arr = np.array(arr)
-    ishape = arr.shape
-    arr = arr.flatten()
+        ishape = arr.shape
+        arr = arr.flatten()
 
-    n_class = arr.max() + 1 if n_class == 0 else n_class
-    assert n_class >= arr.max() + 1, ValueError("Value of 'n_class' is too small.")
+        n_class = arr.max() + 1 if n_class == 0 else n_class
+        assert n_class >= arr.max() + 1, ValueError("Value of 'n_class' is too small.")
 
-    oh = np.zeros((arr.size, n_class), dtype=int)
-    oh[np.arange(arr.size), arr] = 1
-    oh = np.reshape(oh, (*ishape, -1))
+        oh = np.zeros((arr.size, n_class), dtype=int)
+        oh[np.arange(arr.size), arr] = 1
+        oh = np.reshape(oh, (*ishape, -1))
 
     return oh
 

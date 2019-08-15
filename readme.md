@@ -1,4 +1,4 @@
-## PyTorch-自然语言处理-深度神经网络模型
+## PyTorch-深度神经网络模型-自然语言处理
 
 Version 1.0 by KzXuan
 
@@ -26,6 +26,9 @@ Version 1.0 by KzXuan
   * [模型](#模型) -  [model.py](./dnnnlp/model.py)
   * [运行模块](#运行模块) - [exec.py](./dnnnlp/exec.py)
   * [工具](#工具) - [utils.py](./dnnnlp/utils.py)
+  * [使用示例](#使用示例)
+  * [在GPU服务器上的使用](#在GPU服务器上的使用)
+
 
 * 超参数说明：
 
@@ -47,8 +50,6 @@ Version 1.0 by KzXuan
   | eval_metric   | str   | 'acc'  | 使用'acc'/'macro'/'micro'/'class1'等设定模型评判标准 |
 
 <br>
-
-<div style="text-align: right"> your-text-here </div>
 
 ## 层
 
@@ -316,28 +317,64 @@ args.batch_size = 32
 
 ## 工具
 
-> **prfacc1d(y_true, y_pred, one_hot=False, ndigits=4)**
+> **prfacc(y_true, y_pred, mask=None, one_hot=False, ndigits=4, tabular=False)**
 
 &nbsp;&nbsp;&nbsp;&nbsp;
-评估一维标签的预测概率。
+评估预测概率与真实标签，获得所有评估指标。
 
-  * **若标签和预测都为one-hot形式，则输入为二维。**
-  * 返回一个包含所有评估指标的字典，各类别评估键值为'class0-p'/'class1-r'/'class2-f'等，宏平均的键值包含'macro-p'/'macro-r'/'macro-f'，微平均则使用'micro-X'，准确率的键值为'acc'。还包含各类别的统计数据，例如'correct'/'pred'/'real'。
+  * 封装sklearn中的classification_report方法。（对sklearn提供的macro-f1计算方法尚存争议）
+  * **标签和预测可以是任意维度，但必须维度相等。**
+  * **对于序列标注等任务，可以传入mask矩阵标记序列有效长度。**
+  * **支持输入格式为list/np.ndarray/torch.tensor。**
+  * 标签和预测可以同时为one-hot形式。
+  * 若tabular为True，返回一个字符串形式的评估表格。
+  * 若tabular为False，返回一个包含所有评估指标的字典。
+
+```python
+# 评估预测标签
+y_true = [1, 1, 1, 1, 0, 0, 1, 0]
+y_pred = [1, 0, 1, 1, 1, 0, 0, 0]
+evals = prfacc(y_true, y_pred, tabular=False)
+# evals
+{
+    'accuracy': 0.625,
+    'class0': {'precision': 0.5, 'recall': 0.6667, 'f1-score': 0.5714, 'support': 3},
+    'class1': {'precision': 0.75, 'recall': 0.6, 'f1-score': 0.6667, 'support': 5},
+    'macro': {'precision': 0.625, 'recall': 0.6333, 'f1-score': 0.619, 'support': 8},
+    'weighted': {'precision': 0.6562, 'recall': 0.625, 'f1-score': 0.631, 'support': 8}
+}
+```
+
+*Tip: 可以使用pandas.DataFrame(evals, dtype=str).transpose()将字典重新制表。*
 
 <br>
 
-> **prfacc2d(y_true, y_pred, mask=None, one_hot=False, ndigits=4)**
+> **average_prfacc(\*evals, ndigits=4)**
 
 &nbsp;&nbsp;&nbsp;&nbsp;
-评估二维的预测概率，通常指序列标注的预测概率。
-
-  * 需要额外传入mask标记序列有效长度。
-  * 若标签和预测都为one-hot形式，则输入为三维。
-  * 返回值同prfacc1d()。
+为多个评估结果取均值。
 
 <br>
 
-### 功能函数 ([easy_function.py](./dnnnlp/utils/easy_function.py))
+> **maximum_prfacc(\*evals, eval_matric='accuracy')**
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+筛选多个评估结果中，指定评估指标最大的一个。
+
+  * 对于指定评估指标为'macro'/'class0'等情况，取该指标下'f1-score'最大的评估结果。
+
+<br>
+
+> **display_prfacc(\*eval_metrics, sep='|')** <br>
+>> row(evals)
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+在模型运行的每个iteration，以表格形式输出评估结果变化。
+
+  * 当前迭代iter、损失loss和准确率accuracy为必然输出。
+  * 可以添加其它需要输出的指定评估指标，例如'macro'/'class1'。
+
+<br>
 
 > **one_hot(arr, n_class=0)**
 
@@ -380,13 +417,13 @@ mask矩阵转序列长度，同时支持numpy和pytorch输入。
 
 <br>
 
-### 模型功能及使用
+## 使用示例
 
 * 分类
 
   ````python
-  from dnnnlp.pytorch.model import RNNModel
-  from dnnnlp.pytorch.exec import default_args, Classify
+  from dnnnlp.model import RNNModel
+  from dnnnlp.exec import default_args, Classify
 
   emb_mat = np.array([...])
   args = default_args()
@@ -400,6 +437,12 @@ mask矩阵转序列长度，同时支持numpy和pytorch输入。
 
 <br>
 
-### 在GPU服务器上的使用
+## 在GPU服务器上的使用
 
-调试阶段，暂不支持，历史版本v0.12.3可用。
+```python
+from dnnnlp import utils, layer, model, exec
+```
+
+<br>
+
+[返回顶部](#PyTorch-深度神经网络模型-自然语言处理)

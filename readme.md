@@ -2,7 +2,7 @@
 
 Version 1.0 by KzXuan
 
-**包含了PyTorch实现的CNN, RNN用于NLP领域的分类任务。**
+**包含了PyTorch实现的CNN, RNN, Transformer用于NLP领域的分类任务。**
 
 * 全新设计的两大模块
 * 优化大量代码逻辑并降低使用复杂度
@@ -22,7 +22,7 @@ Version 1.0 by KzXuan
 
 * 目录
 
-  * [层](#网络层) - [layer.py](./dnnnlp/layer.py)
+  * [层](#层) - [layer.py](./dnnnlp/layer.py)
   * [模型](#模型) -  [model.py](./dnnnlp/model.py)
   * [运行模块](#运行模块) - [exec.py](./dnnnlp/exec.py)
   * [工具](#工具) - [utils.py](./dnnnlp/utils.py)

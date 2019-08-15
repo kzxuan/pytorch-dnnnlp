@@ -4,7 +4,7 @@ Version 1.0 by KzXuan
 
 **包含了PyTorch实现的CNN, RNN, Transformer用于NLP领域的分类任务。**
 
-* 全新设计的两大模块
+* 全新的模块设计
 * 优化大量代码逻辑并降低使用复杂度
 * 更少的内存占用量
 * 使用mask作为序列长度标识
@@ -32,22 +32,22 @@ Version 1.0 by KzXuan
 
 * 超参数说明：
 
-  | 参数名        | 类型  | 默认值 | 说明                                                 |
-  | ------------- | ----- | ------ | ---------------------------------------------------- |
-  | n_gpu         | int   | 1      | 使用GPU的数量（0表示不使用GPU加速）                  |
-  | space_turbo   | bool  | True   | 利用更多的GPU显存进行加速                            |
-  | data_shuffle  | bool  | Ture   | 是否打乱数据进行训练或测试                           |
-  | emb_type      | str   | None   | 使用None/'const'/'variable'表示Embedding模式         |
-  | emb_dim       | int   | 300    | Embedding维度（输入为特征时表示特征的维度）          |
-  | n_class       | int   | 2      | 分类的目标类数                                       |
-  | n_hidden      | int   | 50     | 隐层节点数，或CNN的输出通道数                        |
-  | learning_rate | float | 0.01   | 学习率                                               |
-  | l2_reg        | float | 1e-6   | L2正则                                               |
-  | batch_size    | int   | 128    | 批量大小                                             |
-  | iter_times    | int   | 30     | 迭代次数                                             |
-  | display_step  | int   | 2      | 迭代过程中显示输出的间隔迭代次数                     |
-  | drop_prob     | float | 0.1    | Dropout比例                                          |
-  | eval_metric   | str   | 'acc'  | 使用'acc'/'macro'/'micro'/'class1'等设定模型评判标准 |
+  | 参数名        | 类型   | 默认值      | 说明                                                 |
+  | ------------- | ----- | ----------- | ---------------------------------------------------- |
+  | n_gpu         | int   | 1           | 使用GPU的数量（0表示不使用GPU加速）                    |
+  | space_turbo   | bool  | True        | 利用更多的GPU显存进行加速                            |
+  | data_shuffle  | bool  | Ture        | 是否打乱数据进行训练或测试                           |
+  | emb_type      | str   | None        | 使用None/'const'/'variable'表示Embedding模式         |
+  | emb_dim       | int   | 300         | Embedding维度（输入为特征时表示特征的维度）          |
+  | n_class       | int   | 2           | 分类的目标类数                                       |
+  | n_hidden      | int   | 50          | 隐层节点数，或CNN的输出通道数                        |
+  | learning_rate | float | 0.01        | 学习率                                               |
+  | l2_reg        | float | 1e-6        | L2正则                                               |
+  | batch_size    | int   | 128         | 批量大小                                             |
+  | iter_times    | int   | 30          | 迭代次数                                             |
+  | display_step  | int   | 2           | 迭代过程中显示输出的间隔迭代次数                     |
+  | drop_prob     | float | 0.1         | Dropout比例                                          |
+  | eval_metric   | str   | 'accuracy'  | 使用'accuracy'/'macro'/'micro'/'class1'等设定模型评判标准 |
 
 <br>
 

@@ -20,6 +20,13 @@ Version 1.0 by KzXuan
 
   python >= 3.5 & pytorch >= 1.2.0
 
+* 目录
+
+  * [层](#网络层) - [layer.py](./dnnnlp/layer.py)
+  * [模型](#模型) -  [model.py](./dnnnlp/model.py)
+  * [运行模块](#运行模块) - [exec.py](./dnnnlp/exec.py)
+  * [工具](#工具) - [utils.py](./dnnnlp/utils.py)
+
 * 超参数说明：
 
   | 参数名        | 类型  | 默认值 | 说明                                                 |
@@ -41,9 +48,9 @@ Version 1.0 by KzXuan
 
 <br>
 
-## pytorch模块说明
+<div style="text-align: right"> your-text-here </div>
 
-### 网络层 ([layer.py](./dnnnlp/pytorch/layer.py))
+## 层
 
 > **EmbeddingLayer(emb_matrix, emb_type='const')** <br>
 >> forward(inputs)
@@ -194,7 +201,7 @@ outputs = trans[5](outputs, query_mask=mask, out_type='first')
 
 <br>
 
-### 模型 ([model.py](./dnnnlp/pytorch/model.py))
+## 模型
 
 > **CNNModel(args, emb_matrix=None, kernel_widths=[2, 3, 4])** <br>
 >> forward(inputs, mask=None)
@@ -256,7 +263,7 @@ pred = model(inputs, mask)
 
 <br>
 
-### 运行 ([exec.py](./dnnnlp/pytorch/exec.py))
+## 运行模块
 
 > **default_args()**
 
@@ -307,9 +314,7 @@ args.batch_size = 32
 
 <br>
 
-## utils模块说明
-
-### 评估 ([predict_eval.py](./dnnnlp/utils/predict_eval.py))
+## 工具
 
 > **prfacc1d(y_true, y_pred, one_hot=False, ndigits=4)**
 

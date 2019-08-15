@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 Deep neural model
-Ubuntu 16.04 & PyTorch 1.1
-Last update: KzXuan, 2019.07.26
-Version 1.0.0
+Ubuntu 16.04 & PyTorch 1.2
+Last update: KzXuan, 2019.08.15
+Version 1.0.1
 """
 import logging
 from inspect import isgeneratorfunction
@@ -34,7 +34,7 @@ class verbose():
         Returns:
             True or False
         """
-        if verbose.level >= level:
+        if verbose.level == level:
             return True
         else:
             return False

@@ -2,36 +2,34 @@ PyTorch库编写的神经网络模型
 Ubuntu 16.04 & PyTorch 1.0
 
 Version 1.0
-  * 1 合并大框架为 dnnnlp, 分 {pytorch} 和 {utils} 两大库
-      添加模块 utils.display_tool, 支持更多输出式样和完善的可视化层级
-      添加模块 utils.easy_function, 删除部分无用函数
-      添加模块 utils.predict_eval, 重新设计的完整的评估框架, 支持序列标注评估及评估指标平均
-      添加模块 utils.word_vector, 优化部分逻辑, 支持文档级词向量转化
-      添加模块 pytorch.tune, 放置调参相关函数
+  * 1 更改大框架为 dnnnlp
+      添加模块 {utils}, 放置功能性函数
+      添加模块 {tune}, 放置调参相关函数
+      删除模块 {base}
   * 2 PyTorch版本支持更新到1.2.0
       由于新版本在mask和Transformer上的调整, 已无法支持1.2以下的版本
-    3 删除 pytorch.base
-      迁移基类至 <pytorch.exec.base>
-      迁移部分函数至 utils.easy_function
-  * 4 优化 pytorch.layer 中的部分层
+    3 删除 {base}
+      迁移基类至 <exec.exec>
+      迁移部分函数至 {utils}
+  * 4 优化 {ayer} 中的部分层
       删除所有层的 init_weight() 函数
       将所有seq_len输入调整为mask输入
-      重写层 pytorch.layer.EmbeddingLayer, 现可用作pytorch的标准层级
-      优化层 pytorch.layer.SoftmaxLayer, 使用LogSoftmax代替Softmax, 以适应损失函数NLLLoss
-      优化层 pytorch.layer.SoftAttentionLayer, 原self_attention_layer
-      重写层 pytorch.layer.CNNLayer, 修复mask操作可能导致的问题, 支持自定义激活函数, 删除stride参数
-      重写层 pytorch.layer.RNNLayer, 适应新的pack函数, 简化操作逻辑
-      重写层 pytorch.layer.MultiheadAttentionLayer, 封装官方提供的注意力机制, 使用batch作为第一维
-      重写层 pytorch.layer.TransformerLayer, 以官方提供的TransformerEncoder为模板, 封装MultiheadAttentionLayer
-  * 5 优化 pytorch.model 中的部分模型
-      优化模型 pytorch.model.CNNModel, 适应新的EmbeddingLayer & CNNLayer
-      优化模型 pytorch.model.RNNModel, 适应新的EmbeddingLayer & RNNLayer
-      优化模型 pytorch.model.TransformerModel, 适应新的EmbeddingLayer & TransformerLayer
-  * 6 优化 pytorch.exec 中的部分方法与逻辑
+      重写层 <layer.EmbeddingLayer>, 现可用作pytorch的标准层级
+      优化层 <layer.SoftmaxLayer>, 使用LogSoftmax代替Softmax, 以适应损失函数NLLLoss
+      优化层 <layer.SoftAttentionLayer>, 原self_attention_layer
+      重写层 <layer.CNNLayer>, 修复mask操作可能导致的问题, 支持自定义激活函数, 删除stride参数
+      重写层 <layer.RNNLayer>, 适应新的pack函数, 简化操作逻辑
+      重写层 <layer.MultiheadAttentionLayer>, 封装官方提供的注意力机制, 使用batch作为第一维
+      重写层 <layer.TransformerLayer>, 以官方提供的TransformerEncoder为模板, 封装MultiheadAttentionLayer
+  * 5 优化 {model} 中的部分模型
+      优化模型 <model.CNNModel>, 适应新的EmbeddingLayer & CNNLayer
+      优化模型 <model.RNNModel>, 适应新的EmbeddingLayer & RNNLayer
+      优化模型 <model.TransformerModel>, 适应新的EmbeddingLayer & TransformerLayer
+  * 6 优化 {exec} 中的部分方法与逻辑
       删除 data_dict 数据读入方式, 改用参数形式
-      优化基础方法 pytorch.exec.exec, 适应新的模型设计和utils工具包, 删除部分冗杂函数以简化调用, 优化内存空间使用
-  * 7 移动部分功能至 pytorch.tune
-      重写函数 pytorch.tune.average_several_run(), 支持使用多块GPU并行完成多个独立训练
+      优化基础方法 <exec.exec>, 适应新的模型设计和 {utils} 工具包, 删除部分冗杂函数以简化调用, 优化内存空间使用
+  * 7 移动部分功能至 {tune}
+      重写函数 tune.average_several_run(), 支持使用多块GPU并行完成多个独立训练
     8 调整模块 utils.easy_function
       优化函数 utils.easy_function.one_hot(), 适应多维度的矩阵转化
       创建函数 utils.easy_function.len_to_mask() & mask_to_len(), 提供mask与seq_len的相互转化

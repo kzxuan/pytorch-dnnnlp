@@ -1,2 +1,3 @@
 .DS_Store
 dnnnlp/utils/._.DS_Store
+dnnnlp/__pycache__/*

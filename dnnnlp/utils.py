@@ -8,7 +8,7 @@ import sys
 import dnnnlp
 import numpy as np
 from sklearn.metrics import classification_report
-
+np.seterr(divide='ignore', invalid='ignore')
 
 def sysprint(_str):
     """Print without '\n'.

@@ -28,6 +28,7 @@ Version 1.0
       删除 data_dict 数据读入方式, 改用参数形式
       优化基础方法 <exec.exec>, 适应新的模型设计和 {utils} 工具包, 删除部分冗杂函数以简化调用, 优化内存空间使用
       重写函数 exec.average_several_run(), 支持使用多块GPU并行完成多个独立训练
+      重写函数 exec.grid_search(), 支持使用多块GPU并行完成多个参数测试
     7 优化 {utils} 中的部分方法
       优化函数 utils.one_hot(), 适应多维度的矩阵转化
       创建函数 utils.len_to_mask() & mask_to_len(), 提供mask与seq_len的相互转化

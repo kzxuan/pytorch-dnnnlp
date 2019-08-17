@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 classifyution functions for deep neural models.
-Last update: KzXuan, 2019.08.16
+Last update: KzXuan, 2019.08.17
 """
 import time
 import torch
@@ -122,7 +122,7 @@ class exec(object):
 
 class Classify(exec):
     def __init__(self, model, args, train_x, train_y, train_mask,
-                 test_x=None, test_y=None, test_mask=None, device_id=0):
+                 test_x=None, test_y=None, test_mask=None):
         """Initilize classification method.
 
         Args:
@@ -134,34 +134,35 @@ class Classify(exec):
             test_x [np.array/tensor]: testing data
             test_y [np.array/tensor]: testing label
             test_mask [np.array/tensor]: testing mask
-            device_id [int]: CPU device for -1, and GPU device for 0/1/...
         """
         exec.__init__(self, args)
 
+        self.model = model
+
+        self.train_x = torch.as_tensor(train_x, dtype=torch.float)
+        self.train_y = torch.as_tensor(train_y, dtype=torch.long)
+        self.train_mask = torch.as_tensor(train_mask, dtype=torch.int)
+        self.test_x = torch.as_tensor(test_x, dtype=torch.float) if test_x else test_x
+        self.test_y = torch.as_tensor(test_y, dtype=torch.long) if test_y else test_y
+        self.test_mask = torch.as_tensor(test_mask, dtype=torch.int) if test_mask else test_mask
+
+    def _model_initilize(self, device_id):
+        """Given initilize fuction for model.
+
+        Args:
+            device_id [int]: CPU device for -1, and GPU device for 0/1/...
+        """
+        assert torch.cuda.device_count() >= self.n_gpu, "Not enough GPU devices."
         self.device_id = device_id
         if self.device_id == -1:
             self.n_gpu = 0
             self.device = torch.device('cpu')
         elif self.n_gpu and self.space_turbo:
-            self.device = torch.device(device_id)
+            self.device = torch.device(self.device_id)
         else:
             self.device = torch.device('cpu')
-        self.model = model
 
-        self.train_x = torch.as_tensor(train_x, dtype=torch.float, device=self.device)
-        self.train_y = torch.as_tensor(train_y, dtype=torch.long, device=self.device)
-        self.train_mask = torch.as_tensor(train_mask, dtype=torch.int, device=self.device)
-        if test_x:
-            self.test_x = torch.as_tensor(test_x, dtype=torch.float, device=self.device)
-        if test_y:
-            self.test_y = torch.as_tensor(test_y, dtype=torch.long, device=self.device)
-        if test_mask:
-            self.test_mask = torch.as_tensor(test_mask, dtype=torch.int, device=self.device)
-
-    def _model_initilize(self):
-        """Given initilize fuction for model.
-        """
-        assert torch.cuda.device_count() >= self.n_gpu, "Not enough GPU devices."
+        # set cuda and parallel
         assert torch.cuda.device_count() >= self.device_id + self.n_gpu, "Not enough GPU devices."
         if self.n_gpu:
             self.model.to(self.device_id)
@@ -169,11 +170,22 @@ class Classify(exec):
                 self.gpu_dist = range(self.device_id, self.device_id + self.n_gpu)
                 self.model = nn.DataParallel(self.model, device_ids=self.gpu_dist)
 
+        # get model initial parameters
         self.model_init = deepcopy(self.model.state_dict())
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=self.learning_rate, weight_decay=self.l2_reg
         )
         self.loss_function = nn.NLLLoss()
+
+        # move data to initial device
+        if self.n_gpu and self.space_turbo:
+            self.train_x = self.train_x.to(self.device_id)
+            self.train_y = self.train_y.to(self.device_id)
+            self.train_mask = self.train_mask.to(self.device_id)
+            if self.test_x:
+                self.test_x = self.test_x.to(self.device_id)
+                self.test_y = self.test_y.to(self.device_id)
+                self.test_mask = self.test_mask.to(self.device_id)
 
     def _run_train(self, train_loader, **model_params):
         """Training part.
@@ -227,14 +239,17 @@ class Classify(exec):
         preds = np.argmax(preds.data.numpy(), axis=-1)
         return preds, tys.data.numpy()
 
-    def train_test(self):
+    def train_test(self, device_id=0):
         """Run training and testing.
+
+        Args:
+            device_id [int]: CPU device for -1, and GPU device for 0/1/...
 
         Returns:
             best_evals [dict]: the best evaluation metrics
         """
         assert self.test_x and self.test_y and self.test_mask, ValueError("Test x or y or mask may not exist.")
-        self._model_initilize()
+        self._model_initilize(device_id)
 
         train_loader = self.create_data_loader(
             self.train_x, self.train_y, self.train_mask
@@ -261,8 +276,11 @@ class Classify(exec):
         ptable.row(dict(best_evals, **{"iter": 'BEST'}))
         return best_evals
 
-    def train_itself(self):
+    def train_itself(self, device_id=0):
         """Run testing with training data.
+
+        Args:
+            device_id [int]: CPU device for -1, and GPU device for 0/1/...
 
         Returns:
             best_evals [dict]: the best evaluation metrics
@@ -270,19 +288,20 @@ class Classify(exec):
         self.test_x = self.train_x
         self.test_y = self.train_y
         self.test_mask = self.train_mask
-        return self.train_test()
+        return self.train_test(device_id)
 
-    def cross_validation(self, fold=10):
+    def cross_validation(self, fold=10, device_id=0):
         """Run cross validation.
 
         Args:
             fold [int]: k fold control
+            device_id [int]: CPU device for -1, and GPU device for 0/1/...
 
         Returns:
             best_evals [dict]: the best evaluation metrics
         """
+        self._model_initilize(device_id)
         kf_avg = []
-        self._model_initilize()
 
         for count, train, test in utils.mod_fold(self.train_x.shape[0], fold=fold):
             train_loader = self.create_data_loader(
@@ -293,6 +312,7 @@ class Classify(exec):
             )
 
             if dnnnlp.verbose.check(2):
+                print()
                 print("Fold {}, label {}".format(count, self.train_y[test].bincount().cpu().numpy()))
             self.model.load_state_dict(self.model_init)
 
@@ -322,42 +342,19 @@ class Classify(exec):
         return avg_evals
 
 
-def _pool_pack_func(exec_class, model, args, *exec_data, **run_params):
-    device_id = run_params.pop("device_id")
-    _exec = exec_class(model, args, *exec_data, device_id=device_id)
-
-    if 'grid_search' in run_params:
-        search_params = run_params.pop('grid_search')
-        _exec.attributes_from_dict(search_params)
-
-    run_mode = run_params.pop('run_mode')
-    if run_mode == 'train_test':
-        result = _exec.train_test(**run_params)
-    elif run_mode == 'train_itself':
-        result = _exec.train_itself(**run_params)
-    elif run_mode == 'cross_validation':
-        result = _exec.cross_validation(**run_params)
-
-    return result
-
-
 def _device_count():
     return torch.cuda.device_count()
 
 
-def average_several_run(exec_class, model, args, *exec_data, n_times=4,
-                        n_paral=2, run_mode='train_test', **run_params):
+def average_several_run(run_func, args, n_times=4, n_paral=2, **run_params):
     """Get average result after several running.
 
     Args:
-        exec_class [exec]: an exec class like 'Classify'
-        model [nn.Module]: a standart pytorch model
+        run_func [func]: running function like 'Classify.train_test'
         args [dict]: all model arguments
-        exec_data [tuple]: data parameters for exec_class
         n_times [int]: run several times for average
         n_paral [int]: number of parallel processes
-        run_mode [str]: use 'train_test'/'train_itself'/'corss_validation' to choose
-        run_params [dict]: parameters for run function
+        run_params [dict]: parameters for runing function
 
     Returns:
         max_socres [dict]: dict of the maximum scores after n_times running
@@ -372,7 +369,6 @@ def average_several_run(exec_class, model, args, *exec_data, n_times=4,
 
     scores, processes = [], []
     pool = mp.Pool(processes=n_paral)
-    run_params['run_mode'] = run_mode
 
     if args.n_gpu > 0:
         assert n_paral * args.n_gpu <= device_count, "Not enough GPU devices."
@@ -384,8 +380,7 @@ def average_several_run(exec_class, model, args, *exec_data, n_times=4,
             run_params['device_id'] = -1
 
         processes.append(pool.apply_async(
-            _pool_pack_func,
-            args=(exec_class, model, args, *exec_data),
+            run_func,
             kwds=run_params.copy()
         ))
 
@@ -408,18 +403,23 @@ def average_several_run(exec_class, model, args, *exec_data, n_times=4,
     return avg_scores
 
 
-def grid_search(exec_class, model, args, *exec_data, params_search,
-                n_paral=2, run_mode='train_test', **run_params):
+def _pack_run(exec_class, run_func, **run_params):
+    time.sleep(1)
+    params_set = run_params.pop('params_set')
+    exec_class.attributes_from_dict(params_set)
+    results = run_func(**run_params)
+    return results
+
+
+def grid_search(exec_class, run_func, args, params_search, n_paral=2, **run_params):
     """Do parameters' grid search.
 
     Args:
-        exec_class [exec]: an exec class like 'Classify'
-        model [nn.Module]: a standart pytorch model
+        exec_func [exec]: an exec class like 'Classify'
+        run_func [func]: running function like 'Classify.train_test'
         args [dict]: all model arguments
-        exec_data [tuple]: data parameters for exec_class
         params_search [dict]: grid search parameters
         n_paral [int]: number of parallel processes
-        run_mode [str]: use 'train_test'/'train_itself'/'corss_validation' to choose
         run_params [dict]: parameters for run function
 
     Returns:
@@ -435,42 +435,38 @@ def grid_search(exec_class, model, args, *exec_data, params_search,
 
     scores, processes = [], []
     pool = mp.Pool(processes=n_paral)
-    run_params['run_mode'] = run_mode
 
     if args.n_gpu > 0:
         assert n_paral * args.n_gpu <= device_count, "Not enough GPU devices."
 
+    def get_result(t):
+        for i, p in enumerate(processes):
+            result = p.get()
+            scores.append(result)
+            print()
+            print(params_search[t + 1 -len(processes) + i])
+            ptable = utils.display_prfacc(args.eval_metric, verbose=0)
+            ptable.row(dict(result, **{"iter": t + 2 - len(processes) + i}))
+
     params_search = list(ParameterGrid(params_search))
     for t, params in enumerate(params_search):
-        run_params['grid_search'] = params
+        run_params['params_set'] = params
         if args.n_gpu > 0:
             run_params['device_id'] = (t % n_paral) * args.n_gpu
         else:
             run_params['device_id'] = -1
 
         processes.append(pool.apply_async(
-            _pool_pack_func,
-            args=(exec_class, model, args, *exec_data),
+            _pack_run,
+            args=(exec_class, run_func),
             kwds=run_params.copy()
         ))
 
         if (t + 1) % n_paral == 0:
-            for i, p in enumerate(processes):
-                result = p.get()
-                scores.append(result)
-                print()
-                print(params_search[t + 1 -len(processes) + i])
-                ptable = utils.display_prfacc(args.eval_metric, verbose=0)
-                ptable.row(dict(result, **{"iter": t + 2 - len(processes) + i}))
+            get_result(t)
             processes.clear()
 
-    for i, p in enumerate(processes):
-        result = p.get()
-        scores.append(result)
-        print()
-        print(params_search[t + 1 -len(processes) + i])
-        ptable = utils.display_prfacc(args.eval_metric, verbose=0)
-        ptable.row(dict(result, **{"iter": t + 2 - len(processes) + i}))
+    get_result(t)
 
     max_scores = utils.maximum_prfacc(*scores, eval_metric=args.eval_metric)
     print()

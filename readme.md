@@ -2,7 +2,7 @@
 
 Version 1.0 by KzXuan
 
-**包含了PyTorch实现的CNN, RNN, Transformer用于NLP领域的分类任务。**
+**包含了PyTorch实现的CNN & RNN & Transformer用于NLP领域的分类任务。**
 
 * 全新的模块设计
 * 优化大量代码逻辑并降低使用复杂度
@@ -440,6 +440,9 @@ mask矩阵转序列长度，同时支持numpy和pytorch输入。
 ## 在GPU服务器上的使用
 
 ```python
+from dnnnlp.exec import Classify
+from dnnnlp.model import RNNModel
+from dnnnlp.layer import TransformerLayer
 from dnnnlp import utils, layer, model, exec
 ```
 

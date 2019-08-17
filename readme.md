@@ -6,11 +6,11 @@ Version 1.0 by KzXuan
 
 * 全新的模块设计
 * 优化大量代码逻辑并降低使用复杂度
-* 更少的内存占用量
 * 使用mask作为序列长度标识
+* 多GPU并行的方式调参
 * 部分bug修复
 
-即将包含：新的序列标注支持，多GPU并行调参。
+即将包含：新的序列标注支持
 
 <br>
 
@@ -32,7 +32,7 @@ Version 1.0 by KzXuan
 
 * 超参数说明：
 
-  | 参数名        | 类型   | 默认值      | 说明                                                 |
+  | 参数名         | 类型   | 默认值       | 说明                                                 |
   | ------------- | ----- | ----------- | ---------------------------------------------------- |
   | n_gpu         | int   | 1           | 使用GPU的数量（0表示不使用GPU加速）                    |
   | space_turbo   | bool  | True        | 利用更多的GPU显存进行加速                            |
@@ -45,9 +45,9 @@ Version 1.0 by KzXuan
   | l2_reg        | float | 1e-6        | L2正则                                               |
   | batch_size    | int   | 128         | 批量大小                                             |
   | iter_times    | int   | 30          | 迭代次数                                             |
-  | display_step  | int   | 2           | 迭代过程中显示输出的间隔迭代次数                     |
+  | display_step  | int   | 2           | 迭代过程中显示输出的间隔迭代次数                         |
   | drop_prob     | float | 0.1         | Dropout比例                                          |
-  | eval_metric   | str   | 'accuracy'  | 使用'accuracy'/'macro'/'micro'/'class1'等设定模型评判标准 |
+  | eval_metric   | str   | 'accuracy'  | 使用'accuracy'/'macro'/'class1'等设定模型评判标准       |
 
 <br>
 
@@ -266,6 +266,13 @@ pred = model(inputs, mask)
 
 ## 运行模块
 
+> **set_seed(seed=100)**
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+设置pytorch的参数初始化随即种子。
+
+<br>
+
 > **default_args()**
 
 &nbsp;&nbsp;&nbsp;&nbsp;
@@ -307,11 +314,52 @@ args.batch_size = 32
 
   * **调用时提供三种运行模式的接口：**
 
-    (1) train_test()：训练-测试数据的调用函数
+    (1) train_test(device_id=0)：训练-测试数据的调用函数
 
-    (2) train_itself()：单一训练数据并使用本身进行测试的调用函数
+    (2) train_itself(device_id=0)：单一训练数据并使用本身进行测试的调用函数
 
-    (3) cross_validation(fold=10)：k折交叉数据的调用函数
+    (3) cross_validation(fold=10, device_id=0)：k折交叉数据的调用函数
+
+    *Tip: device_id可以用来选择模型的运行硬件，-1表示使用CPU运行，0/1/...表示使用第几块GPU运行。*
+
+<br>
+
+> **average_several_run(run_func, args, n_times=4, n_paral=2, \*\*run_params)**
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+多GPU并行同一模型，并获取多次运行后的均值。
+
+  * run_func接受某一运行模块的运行函数。
+  * **使用n_paral设置并行的GPU数（或CPU内的进程数），是否使用GPU以及单次运行模型所需要的GPU数仍然由args.n_gpu设定。**
+  * 模型运行次数n_times需为n_paral的整数倍。
+
+```python
+# 初始化一个分类运行模块
+nn = Classify(model, args, train_x, train_y, train_mask)
+# 4GPU并行共运行模型8次
+avg_socre = average_several_run(nn.cross_validation, args, n_times=8, n_paral=4, fold=5)
+```
+
+<br>
+
+> **grid_search(exec_class, run_func, args, params_search, n_paral=2, **run_params)**
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+多GPU并行同一模型，并获取参数网格搜索后的结果。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;
+**WARNING** 存在多进程导致GPU显存溢出的可能性，尚不清楚原因，重新运行或许可以解决。
+
+  * exec_class接受实例化后的某一运行模块，run_func接受该模块的运行函数。
+  * **使用n_paral设置并行的GPU数（或CPU内的进程数）。**
+
+```python
+# 初始化一个分类运行模块
+nn = Classify(model, args, train_x, train_y, train_mask)
+# 需要搜索的参数
+params_search = {'learning_rate': [0.1, 0.01], 'n_hidden': [50, 100]}
+# 2GPU并行网格搜索
+max_score = grid_search(nn, nn.train_test, args, params_search)
+```
 
 <br>
 
@@ -365,7 +413,7 @@ evals = prfacc(y_true, y_pred, tabular=False)
 
 <br>
 
-> **display_prfacc(\*eval_metrics, sep='|')** <br>
+> **display_prfacc(\*eval_metrics, sep='|', verbose=2)** <br>
 >> row(evals)
 
 &nbsp;&nbsp;&nbsp;&nbsp;
@@ -373,6 +421,7 @@ evals = prfacc(y_true, y_pred, tabular=False)
 
   * 当前迭代iter、损失loss和准确率accuracy为必然输出。
   * 可以添加其它需要输出的指定评估指标，例如'macro'/'class1'。
+  * 利用verbose等级控制表格是否输出。
 
 <br>
 
@@ -430,9 +479,40 @@ mask矩阵转序列长度，同时支持numpy和pytorch输入。
 
   model = RNNModel(args)
 
+  nn = Classify(model, args, train_x, train_y, train_mask, test_x, test_y, test_mask)
+  nn.train_test()
+  ````
+
+* 并行
+
+  ````python
+  from dnnnlp.model import RNNModel
+  from dnnnlp.exec import default_args, Classify, average_several_run
+
+  emb_mat = np.array([...])
+  args = default_args()
+
+  model = RNNModel(args)
+
+  nn = Classify(model, args, train_x, train_y, train_mask)
+  avg_scores = average_several_run(nn.cross_validation, args, n_times=8, n_paral=4, fold=5)
+  ````
+
+* 网格搜索
+
+    ````python
+  from dnnnlp.model import RNNModel
+  from dnnnlp.exec import default_args, Classify, grid_search
+
+  emb_mat = np.array([...])
+  args = default_args()
+
+  model = RNNModel(args)
+
   class_name = ['support', 'deny', 'query', 'comment']
-  nn = Classify(model, args, train_x, train_y, train_mask, test_x, test_y, test_mask, emb_matrix, class_name)
-  nn.cross_validation(fold=10)
+  nn = Classify(model, args, train_x, train_y, train_mask)
+  params_search = {'learning_rate': [0.1, 0.01], 'n_hidden': [50, 100]}
+  max_scores = grid_search(nn, nn.train_test, args, params_search)
   ````
 
 <br>

@@ -2,16 +2,29 @@
 # -*- coding: utf-8 -*-
 """
 classifyution functions for deep neural models.
-Last update: KzXuan, 2019.08.12
+Last update: KzXuan, 2019.08.16
 """
 import time
 import torch
+import dnnnlp
 import argparse
 import numpy as np
 import torch.nn as nn
 import torch.utils.data as Data
+import torch.multiprocessing as mp
 from copy import deepcopy
 from . import utils, layer, model
+
+
+def set_seed(seed=100):
+    """Set random seed.
+
+    Args:
+        seed [int]: seed number
+    """
+    torch.manual_seed(100)
+    torch.cuda.manual_seed(100)
+    torch.cuda.manual_seed_all(100)
 
 
 def default_args():
@@ -77,6 +90,8 @@ class exec(object):
         self.display_step = args.display_step
         self.drop_prob = args.drop_prob
         self.eval_metric = args.eval_metric
+        if self.eval_metric == 'micro':
+            self.eval_metric = 'accuracy'
 
     def attributes_from_dict(self, args):
         """Set attributes' name and value from dict.
@@ -107,7 +122,7 @@ class exec(object):
 
 class Classify(exec):
     def __init__(self, model, args, train_x, train_y, train_mask,
-                test_x=None, test_y=None, test_mask=None, device_id=0):
+                 test_x=None, test_y=None, test_mask=None, device_id=0):
         """Initilize classification method.
 
         Args:
@@ -124,9 +139,14 @@ class Classify(exec):
         exec.__init__(self, args)
 
         self.device_id = device_id
-        self.device = torch.device(device_id) if self.n_gpu and self.space_turbo else torch.device("cpu")
+        if self.device_id == -1:
+            self.n_gpu = 0
+            self.device = torch.device('cpu')
+        elif self.n_gpu and self.space_turbo:
+            self.device = torch.device(device_id)
+        else:
+            self.device = torch.device('cpu')
         self.model = model
-        self._model_initilize()
 
         self.train_x = torch.as_tensor(train_x, dtype=torch.float, device=self.device)
         self.train_y = torch.as_tensor(train_y, dtype=torch.long, device=self.device)
@@ -214,6 +234,7 @@ class Classify(exec):
             best_evals [dict]: the best evaluation metrics
         """
         assert self.test_x and self.test_y and self.test_mask, ValueError("Test x or y or mask may not exist.")
+        self._model_initilize()
 
         train_loader = self.create_data_loader(
             self.train_x, self.train_y, self.train_mask
@@ -221,9 +242,10 @@ class Classify(exec):
         test_loader = self.create_data_loader(
             self.test_x, self.test_y, self.test_mask
         )
+        self.model.load_state_dict(self.model_init)
 
         results = []
-        ptable = utils.display_prfacc(self.eval_metric)
+        ptable = utils.display_prfacc(self.eval_metric, verbose=2)
         for it in range(1, self.iter_times + 1):
             loss = self._run_train(train_loader)
             pred, ty = self._run_test(test_loader)
@@ -235,7 +257,7 @@ class Classify(exec):
             results.append(evals)
 
         best_evals = utils.maximum_prfacc(*results, eval_metric=self.eval_metric)
-        ptable.line()
+        ptable = utils.display_prfacc(self.eval_metric, verbose=1)
         ptable.row(dict(best_evals, **{"iter": 'BEST'}))
         return best_evals
 
@@ -260,6 +282,8 @@ class Classify(exec):
             best_evals [dict]: the best evaluation metrics
         """
         kf_avg = []
+        self._model_initilize()
+
         for count, train, test in utils.mod_fold(self.train_x.shape[0], fold=fold):
             train_loader = self.create_data_loader(
                 self.train_x[train], self.train_y[train], self.train_mask[train]
@@ -268,11 +292,12 @@ class Classify(exec):
                 self.train_x[test], self.train_y[test], self.train_mask[test]
             )
 
-            print("* Fold {}, label {}".format(count, self.train_y[test].bincount().cpu().numpy()))
+            if dnnnlp.verbose.check(2):
+                print("Fold {}, label {}".format(count, self.train_y[test].bincount().cpu().numpy()))
             self.model.load_state_dict(self.model_init)
 
             results = []
-            ptable = utils.display_prfacc(self.eval_metric)
+            ptable = utils.display_prfacc(self.eval_metric, verbose=2)
             for it in range(1, self.iter_times + 1):
                 loss = self._run_train(train_loader)
                 pred, ty = self._run_test(test_loader)
@@ -286,11 +311,171 @@ class Classify(exec):
             best_evals = utils.maximum_prfacc(*results, eval_metric=self.eval_metric)
             ptable.line()
             ptable.row(dict(best_evals, **{"iter": 'BEST'}))
-            print()
 
             kf_avg.append(best_evals)
 
         avg_evals = utils.average_prfacc(*kf_avg)
-        ptable = utils.display_prfacc(self.eval_metric)
+        if dnnnlp.verbose.check(1):
+            print()
+        ptable = utils.display_prfacc(self.eval_metric, verbose=1)
         ptable.row(dict(avg_evals, **{"iter": 'AVG'}))
         return avg_evals
+
+
+def _pool_pack_func(exec_class, model, args, *exec_data, **run_params):
+    device_id = run_params.pop("device_id")
+    _exec = exec_class(model, args, *exec_data, device_id=device_id)
+
+    if 'grid_search' in run_params:
+        search_params = run_params.pop('grid_search')
+        _exec.attributes_from_dict(search_params)
+
+    run_mode = run_params.pop('run_mode')
+    if run_mode == 'train_test':
+        result = _exec.train_test(**run_params)
+    elif run_mode == 'train_itself':
+        result = _exec.train_itself(**run_params)
+    elif run_mode == 'cross_validation':
+        result = _exec.cross_validation(**run_params)
+
+    return result
+
+
+def _device_count():
+    return torch.cuda.device_count()
+
+
+def average_several_run(exec_class, model, args, *exec_data, n_times=4,
+                        n_paral=2, run_mode='train_test', **run_params):
+    """Get average result after several running.
+
+    Args:
+        exec_class [exec]: an exec class like 'Classify'
+        model [nn.Module]: a standart pytorch model
+        args [dict]: all model arguments
+        exec_data [tuple]: data parameters for exec_class
+        n_times [int]: run several times for average
+        n_paral [int]: number of parallel processes
+        run_mode [str]: use 'train_test'/'train_itself'/'corss_validation' to choose
+        run_params [dict]: parameters for run function
+
+    Returns:
+        max_socres [dict]: dict of the maximum scores after n_times running
+    """
+    dnnnlp.verbose.config(0)
+
+    assert not n_times % n_paral, ValueError("'n_times' should be an integral multiple of 'n_paral'.")
+
+    pool = mp.Pool(processes=1)
+    check = pool.apply_async(_device_count)
+    device_count = check.get()
+
+    scores, processes = [], []
+    pool = mp.Pool(processes=n_paral)
+    run_params['run_mode'] = run_mode
+
+    if args.n_gpu > 0:
+        assert n_paral * args.n_gpu <= device_count, "Not enough GPU devices."
+
+    for t in range(n_times):
+        if args.n_gpu > 0:
+            run_params['device_id'] = (t % n_paral) * args.n_gpu
+        else:
+            run_params['device_id'] = -1
+
+        processes.append(pool.apply_async(
+            _pool_pack_func,
+            args=(exec_class, model, args, *exec_data),
+            kwds=run_params.copy()
+        ))
+
+        if (t + 1) % n_paral == 0:
+            for i, p in enumerate(processes):
+                result = p.get()
+                scores.append(result)
+
+                print()
+                ptable = utils.display_prfacc(args.eval_metric, verbose=0)
+                ptable.row(dict(result, **{"iter": t + 2 - len(processes) + i}))
+            processes.clear()
+
+    avg_scores = utils.average_prfacc(*scores)
+    print()
+    ptable = utils.display_prfacc(args.eval_metric, verbose=0)
+    ptable.row(dict(avg_scores, **{"iter": 'AVG'}))
+
+    dnnnlp.verbose.config(2)
+    return avg_scores
+
+
+def grid_search(exec_class, model, args, *exec_data, params_search,
+                n_paral=2, run_mode='train_test', **run_params):
+    """Do parameters' grid search.
+
+    Args:
+        exec_class [exec]: an exec class like 'Classify'
+        model [nn.Module]: a standart pytorch model
+        args [dict]: all model arguments
+        exec_data [tuple]: data parameters for exec_class
+        params_search [dict]: grid search parameters
+        n_paral [int]: number of parallel processes
+        run_mode [str]: use 'train_test'/'train_itself'/'corss_validation' to choose
+        run_params [dict]: parameters for run function
+
+    Returns:
+        max_socres [dict]: dict of the maximum scores after n_times running
+    """
+    from sklearn.model_selection import ParameterGrid
+
+    dnnnlp.verbose.config(0)
+
+    pool = mp.Pool(processes=1)
+    check = pool.apply_async(_device_count)
+    device_count = check.get()
+
+    scores, processes = [], []
+    pool = mp.Pool(processes=n_paral)
+    run_params['run_mode'] = run_mode
+
+    if args.n_gpu > 0:
+        assert n_paral * args.n_gpu <= device_count, "Not enough GPU devices."
+
+    params_search = list(ParameterGrid(params_search))
+    for t, params in enumerate(params_search):
+        run_params['grid_search'] = params
+        if args.n_gpu > 0:
+            run_params['device_id'] = (t % n_paral) * args.n_gpu
+        else:
+            run_params['device_id'] = -1
+
+        processes.append(pool.apply_async(
+            _pool_pack_func,
+            args=(exec_class, model, args, *exec_data),
+            kwds=run_params.copy()
+        ))
+
+        if (t + 1) % n_paral == 0:
+            for i, p in enumerate(processes):
+                result = p.get()
+                scores.append(result)
+                print()
+                print(params_search[t + 1 -len(processes) + i])
+                ptable = utils.display_prfacc(args.eval_metric, verbose=0)
+                ptable.row(dict(result, **{"iter": t + 2 - len(processes) + i}))
+            processes.clear()
+
+    for i, p in enumerate(processes):
+        result = p.get()
+        scores.append(result)
+        print()
+        print(params_search[t + 1 -len(processes) + i])
+        ptable = utils.display_prfacc(args.eval_metric, verbose=0)
+        ptable.row(dict(result, **{"iter": t + 2 - len(processes) + i}))
+
+    max_scores = utils.maximum_prfacc(*scores, eval_metric=args.eval_metric)
+    print()
+    ptable = utils.display_prfacc(args.eval_metric, verbose=0)
+    ptable.row(dict(max_scores, **{"iter": 'MAX'}))
+
+    dnnnlp.verbose.config(2)
+    return

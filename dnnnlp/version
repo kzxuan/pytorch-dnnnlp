@@ -4,7 +4,6 @@ Ubuntu 16.04 & PyTorch 1.0
 Version 1.0
   * 1 更改大框架为 dnnnlp
       添加模块 {utils}, 放置功能性函数
-      添加模块 {tune}, 放置调参相关函数
       删除模块 {base}
   * 2 PyTorch版本支持更新到1.2.0
       由于新版本在mask和Transformer上的调整, 已无法支持1.2以下的版本
@@ -28,11 +27,10 @@ Version 1.0
   * 6 优化 {exec} 中的部分方法与逻辑
       删除 data_dict 数据读入方式, 改用参数形式
       优化基础方法 <exec.exec>, 适应新的模型设计和 {utils} 工具包, 删除部分冗杂函数以简化调用, 优化内存空间使用
-  * 7 移动部分功能至 {tune}
-      重写函数 tune.average_several_run(), 支持使用多块GPU并行完成多个独立训练
-    8 调整模块 utils.easy_function
-      优化函数 utils.easy_function.one_hot(), 适应多维度的矩阵转化
-      创建函数 utils.easy_function.len_to_mask() & mask_to_len(), 提供mask与seq_len的相互转化
+      重写函数 exec.average_several_run(), 支持使用多块GPU并行完成多个独立训练
+    7 优化 {utils} 中的部分方法
+      优化函数 utils.one_hot(), 适应多维度的矩阵转化
+      创建函数 utils.len_to_mask() & mask_to_len(), 提供mask与seq_len的相互转化
 
 Version 0.12
     1 为RNN提供tanh/LSTM/GRU三种模型支持

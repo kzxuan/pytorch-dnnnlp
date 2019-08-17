@@ -6,11 +6,6 @@ Ubuntu 16.04 & PyTorch 1.2
 Last update: KzXuan, 2019.08.15
 Version 1.0.1
 """
-import logging
-from inspect import isgeneratorfunction
-
-# set default logging style
-logging.basicConfig(format="%(asctime)s %(name)s: %(levelname)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
 
 # verbose for output portion
@@ -34,7 +29,7 @@ class verbose():
         Returns:
             True or False
         """
-        if verbose.level == level:
+        if verbose.level >= level:
             return True
         else:
             return False

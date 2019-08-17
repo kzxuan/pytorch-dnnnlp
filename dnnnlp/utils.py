@@ -239,13 +239,17 @@ def maximum_prfacc(*evals, eval_metric='accuracy'):
 class display_prfacc(object):
     """Display evaluations line by line.
     """
-    def __init__(self, *eval_metrics, sep='|'):
+    def __init__(self, *eval_metrics, sep='|', verbose=2):
         """Initilize and print head.
 
         Args:
             eval_metrics [str]: several wanted evaluation metrics
-            sep [str]: sep [str]: separate mark like ' '/'|'/'*'
+            sep [str]: separate mark like ' '/'|'/'*'
+            verbose [int]: verbose level
         """
+        self.verbose = verbose
+        if not dnnnlp.verbose.check(self.verbose):
+            return
         eval_metrics = list(eval_metrics)
         for i, em in enumerate(eval_metrics):
             if em[:5] not in ['accur', 'macro', 'micro', 'class']:
@@ -267,6 +271,8 @@ class display_prfacc(object):
     def line(self):
         """Print a line.
         """
+        if not dnnnlp.verbose.check(self.verbose):
+            return
         for i in range(len(self.col)):
             sysprint(self.sep)
             sysprint("-" * self.width[i])
@@ -277,6 +283,8 @@ class display_prfacc(object):
         Atgs:
             evals [dict]: dict of all the evaluation metrics
         """
+        if not dnnnlp.verbose.check(self.verbose):
+            return
         sysprint(self.sep)
         sysprint("{:^4}".format(evals.get('iter', '-')))
         sysprint(self.sep)

@@ -1,6 +1,15 @@
-# dnnnlp-API
+# API
 
-## 层
+Version 1.0 by KzXuan
+
+  * [Layer](#layer)
+  * [Model](#model)
+  * [Execution](#execution)
+  * [Utility](#utility)
+
+<br>
+
+## Layer
 
 > **EmbeddingLayer(emb_matrix, emb_type='const')** <br>
 >> forward(inputs)
@@ -80,7 +89,7 @@ outputs = torch.cat([c(inputs, seq_len, out_type='max') for c in cnn_set], -1)
 
 <br>
 
-> **RNNLayer(input_size, n_hidden, n_layer, drop_prob=0., bi_direction=True, rnn_type='LSTM')** <br>
+> **RNNLayer(input_size, n_hidden, n_layer=1, drop_prob=0., bi_direction=True, rnn_type='LSTM')** <br>
 >> forward(inputs, mask=None, out_type='last')
 
 &nbsp;&nbsp;&nbsp;&nbsp;
@@ -151,7 +160,7 @@ outputs = trans[5](outputs, query_mask=mask, out_type='first')
 
 <br>
 
-## 模型
+## Model
 
 > **CNNModel(args, emb_matrix=None, kernel_widths=[2, 3, 4])** <br>
 >> forward(inputs, mask=None)
@@ -213,7 +222,7 @@ pred = model(inputs, mask)
 
 <br>
 
-## 运行模块
+## Execution
 
 > **set_seed(seed=100)**
 
@@ -312,7 +321,7 @@ max_score = grid_search(nn, nn.train_test, args, params_search)
 
 <br>
 
-## 工具
+## Utility
 
 > **prfacc(y_true, y_pred, mask=None, one_hot=False, ndigits=4, tabular=False)**
 
@@ -415,4 +424,4 @@ mask矩阵转序列长度，同时支持numpy和pytorch输入。
 
 <br>
 
-[返回顶部](#dnnnlp-API)
+[返回顶部](#API)

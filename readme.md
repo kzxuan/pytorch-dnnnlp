@@ -20,12 +20,12 @@ Version 1.0 by KzXuan
 
   python >= 3.5 & pytorch >= 1.2.0
 
-* API文档
+* [API文档](./docs.md)
 
-  * [层](./docs.md#层) - [layer.py](./dnnnlp/layer.py)
-  * [模型](./docs.md#模型) -  [model.py](./dnnnlp/model.py)
-  * [运行模块](./docs.md#运行模块) - [exec.py](./dnnnlp/exec.py)
-  * [工具](./docs.md#工具) - [utils.py](./dnnnlp/utils.py)
+  * [Layer](./docs.md#Layer) - [layer.py](./dnnnlp/layer.py)
+  * [Model](./docs.md#Model) -  [model.py](./dnnnlp/model.py)
+  * [Execution](./docs.md#Execution) - [exec.py](./dnnnlp/exec.py)
+  * [Utility](./docs.md#Utility) - [utils.py](./dnnnlp/utils.py)
 
 * 超参数说明：
 
@@ -56,13 +56,20 @@ Version 1.0 by KzXuan
   from dnnnlp.model import RNNModel
   from dnnnlp.exec import default_args, Classify
 
-  emb_mat = np.array([...])
+  emb_mat = np.array(...)
+  train_x = np.array((800, 50, 300))
+  train_y = np.array((800,))
+  train_mask = np.array((800, 50))
+  test_x = np.array((200, 50, 300))
+  test_y = np.array((200,))
+  test_mask = np.array((200, 50))
+
   args = default_args()
 
   model = RNNModel(args, emb_mat, bi_direction=False, rnn_type='GRU', use_attention=True)
 
   nn = Classify(model, args, train_x, train_y, train_mask, test_x, test_y, test_mask)
-  nn.train_test()
+  evals = nn.train_test(device_id=0)
   ````
 
 * 并行
@@ -71,13 +78,17 @@ Version 1.0 by KzXuan
   from dnnnlp.model import CNNModel
   from dnnnlp.exec import default_args, Classify, average_several_run
 
-  emb_mat = np.array([...])
+  emb_mat = np.array(...)
+  train_x = np.array((1000, 50, 300))
+  train_y = np.array((1000,))
+  train_mask = np.array((1000, 50))
+
   args = default_args()
 
   model = CNNModel(args, emb_mat, kernel_widths=[2, 3, 4])
 
   nn = Classify(model, args, train_x, train_y, train_mask)
-  avg_scores = average_several_run(nn.cross_validation, args, n_times=8, n_paral=4, fold=5)
+  avg_evals = average_several_run(nn.cross_validation, args, n_times=8, n_paral=4, fold=5)
   ````
 
 * 网格搜索
@@ -86,14 +97,21 @@ Version 1.0 by KzXuan
   from dnnnlp.model import TransformerModel
   from dnnnlp.exec import default_args, Classify, grid_search
 
-  emb_mat = np.array([...])
+  emb_mat = np.array(...)
+  train_x = np.array((800, 50, 300))
+  train_y = np.array((800,))
+  train_mask = np.array((800, 50))
+  test_x = np.array((200, 50, 300))
+  test_y = np.array((200,))
+  test_mask = np.array((200, 50))
+
   args = default_args()
 
   model = TransformerModel(args, n_layer=12, n_head=8)
 
-  nn = Classify(model, args, train_x, train_y, train_mask)
+  nn = Classify(model, args, train_x, train_y, train_mask, test_x, test_y, test_mask)
   params_search = {'learning_rate': [0.1, 0.01], 'n_hidden': [50, 100]}
-  max_scores = grid_search(nn, nn.train_test, args, params_search)
+  max_evals = grid_search(nn, nn.train_test, args, params_search)
   ````
 
 <br>

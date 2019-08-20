@@ -19,7 +19,7 @@ Coming soon: new sequence labeling support.
 
   python >= 3.5 & pytorch >= 1.2.0
 
-* [API Documents](./docs.md)
+* [API Document](./docs.md)
 
   * [Layer](./docs.md#Layer) - [layer.py](./dnnnlp/layer.py)
   * [Model](./docs.md#Model) -  [model.py](./dnnnlp/model.py)
@@ -127,6 +127,7 @@ Coming soon: new sequence labeling support.
   * Optimize and rename `CNNModel`, `RNNModel` and `TransformerModel`.
   * Optimize and rename `Classify`: a highly applicable classification execution module.
   * Rewrite `average_several_run` and `grid_search`: support multi-GPU parallel.
+  * Support pytorch 1.2.0.
 
 **version 0.12**
   * Update `RNN_layer`: fully support for tanh, LSTM and GRU.
@@ -190,4 +191,4 @@ Coming soon: new sequence labeling support.
   * Add `LSTM_model`: a packaging LSTM model based on `nn.LSTM`.
   * Add `LSTM_classify`: a classification module for LSTM model, which supports train-test and corss-validation.
 
-[Top](#PyTorch%20-%20Deep%20Neural%20Network%20-%20Natural%20Language%20Processing)
+[Top](#PyTorch\ -\ Deep\ Neural\ Network\ -\ Natural\ Language\ Processing)

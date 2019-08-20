@@ -117,6 +117,77 @@ Coming soon: new sequence labeling support.
 
 ### History
 
+**version 1.0**
+  * Rename project `dnn` to `dnnnlp`.
+  * Remove file `base`, add file `utils`.
+  * Optimize and rename `SoftmaxLayer` and `SoftAttentionLayer`.
+  * Rewrite and rename `EmbeddingLayer`, `CNNLayer`, `RNNLayer`.
+  * Rewrite `MultiheadAttentionLayer`: a packaging attention layer based on `nn.MultiheadAttention`.
+  * Rewrite `TransformerLayer`: support new `MultiheadAttentionLayer`.
+  * Optimize and rename `CNNModel`, `RNNModel` and `TransformerModel`.
+  * Optimize and rename `Classify`: a highly applicable classification execution module.
+  * Rewrite `average_several_run` and `grid_search`: support multi-GPU parallel.
 
+**version 0.12**
+  * Update `RNN_layer`: fully support for tanh, LSTM and GRU.
+  * Fix errors in some mask operations.
+  * Support pytorch 1.1.0.
+
+**version 0.11**
+  * Provides an acceleration method by using more GPU memories.
+  * Fix the problem of memory consumption caused by abnormal data reading.
+  * Add `multi_head_attention_layer`: packaging multi-head attention for Transformer.
+  * Add `Transformer_layer` and `Transformer_model`: packaging Transformer layer and model written by ourself.
+  * Support data disruption for training.
+
+**version 0.10**
+  * Split the code into four files: `base`, `layer`, `model`, `exec`.
+  * Add `CNN_layer` and `CNN_model`: packaging CNN layer and model.
+  * Support multi-GPU parallel for each model.
+
+**version 0.9**
+  * Fix the problem of output format.
+  * Fix the statistical errors in cross-validation part of `LSTM_classify`.
+  * Rename: `LSTM_model` to `RNN_layer`, `self_attention` to `self_attention_layer`.
+  * Add `softmax_layer`: a packaging fully-connected layer.
+
+**version 0.8**
+  * Adjust the applicability of functions in `LSTM_classify` to avoid rewriting in `LSTM_sequence`.
+  * Optimize the way of parameter transfer.
+  * A more complete evaluation mechanism.
+
+**version 0.7**
+  * Add `LSTM_sequence`: a sequence labeling module for `LSTM_model`.
+  * Fix the nan-value problem in hierarchical classification.
+  * Support pytorch 1.0.0.
+
+**version 0.6**
+  * Update `LSTM_classify`: support hierarchical classification.
+  * The `GRU_model` is merged into the `LSTM_model`.
+  * Adapt to CPU operation.
+
+**version 0.5**
+  * Split the running part of `LSTM_classify` to reduce the rewrite of custom models.
+  * Add control for visual output.
+  * Create function `average_several_run`: support to get the average score after several training and testing.
+  * Create function `grid_search`: support parameters' grid search.
+
+**version 0.4**
+  * Add `GRU_model`: a packaging GRU model based on `nn.GRU`.
+  * Support L2 regular.
+
+**version 0.3**
+  * Add `self_attention`: provides attention mechanism support.
+  * Update `LSTM_classify`: adapts to complex custom models.
+
+**version 0.2**
+  * Support mode selection of embedding.
+  * Default usage of `nn.Dropout`.
+  * Create function `default_args` to provide default hyperparameters.
+
+**version 0.1**
+  * Initilization of project `dnn`: based on pytorch 0.4.1.
+  * Add `LSTM_model`: a packaging LSTM model based on `nn.LSTM`.
+  * Add `LSTM_classify`: a classification module for LSTM model, which supports train-test and corss-validation.
 
 [Top](#PyTorch%20-%20Deep%20Neural%20Network%20-%20Natural%20Language%20Processing)

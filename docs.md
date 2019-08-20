@@ -424,4 +424,4 @@ mask矩阵转序列长度，同时支持numpy和pytorch输入。
 
 <br>
 
-[返回顶部](#API)
+[Top](#API)

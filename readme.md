@@ -1,56 +1,55 @@
-# PyTorch-深度神经网络模型-自然语言处理
+## PyTorch - Deep Neural Network - Natural Language Processing
 
 Version 1.0 by KzXuan
 
-**包含了PyTorch实现的CNN & RNN & Transformer用于NLP领域的分类任务。**
+**Contains CNN, RNN and Transformer layers and models implemented by pytorch for classification tasks in NLP.**
 
-* 全新的模块设计
-* 优化大量代码逻辑并降低使用复杂度
-* 使用mask作为序列长度标识
-* 多GPU并行的方式调参
-* 部分bug修复
+* Newly designed modules.
+* Reduce usage complexity.
+* Use `mask` as the sequence length identifier.
+* Multi-GPU parallel for grid search.
 
-即将包含：新的序列标注支持
+Coming soon: new sequence labeling support.
 
 <br>
 
-## 说明
+### Introduction
 
-* 环境：
+* Dependecies
 
   python >= 3.5 & pytorch >= 1.2.0
 
-* [API文档](./docs.md)
+* [API Documents](./docs.md)
 
   * [Layer](./docs.md#Layer) - [layer.py](./dnnnlp/layer.py)
   * [Model](./docs.md#Model) -  [model.py](./dnnnlp/model.py)
   * [Execution](./docs.md#Execution) - [exec.py](./dnnnlp/exec.py)
   * [Utility](./docs.md#Utility) - [utils.py](./dnnnlp/utils.py)
 
-* 超参数说明：
+* Hyperparameters
 
-  | 参数名         | 类型   | 默认值       | 说明                                                 |
-  | ------------- | ----- | ----------- | ---------------------------------------------------- |
-  | n_gpu         | int   | 1           | 使用GPU的数量（0表示不使用GPU加速）                    |
-  | space_turbo   | bool  | True        | 利用更多的GPU显存进行加速                            |
-  | data_shuffle  | bool  | Ture        | 是否打乱数据进行训练或测试                           |
-  | emb_type      | str   | None        | 使用None/'const'/'variable'表示Embedding模式         |
-  | emb_dim       | int   | 300         | Embedding维度（输入为特征时表示特征的维度）          |
-  | n_class       | int   | 2           | 分类的目标类数                                       |
-  | n_hidden      | int   | 50          | 隐层节点数，或CNN的输出通道数                        |
-  | learning_rate | float | 0.01        | 学习率                                               |
-  | l2_reg        | float | 1e-6        | L2正则                                               |
-  | batch_size    | int   | 128         | 批量大小                                             |
-  | iter_times    | int   | 30          | 迭代次数                                             |
-  | display_step  | int   | 2           | 迭代过程中显示输出的间隔迭代次数                         |
-  | drop_prob     | float | 0.1         | Dropout比例                                          |
-  | eval_metric   | str   | 'accuracy'  | 使用'accuracy'/'macro'/'class1'等设定模型评判标准       |
+  | Name          | Type  | Default     | Description                                                    |
+  | ------------- | ----- | ----------- | -------------------------------------------------------------- |
+  | n_gpu         | int   | 1           | The number of GPUs (0 means no GPU acceleration).              |
+  | space_turbo   | bool  | True        | Accelerate with more GPU memories.                             |
+  | data_shuffle  | bool  | Ture        | Disrupt data for training.                                     |
+  | emb_type      | str   | None        | Embedding modes contain None, 'const' or 'variable'.           |
+  | emb_dim       | int   | 300         | Embedding dimension (or feature dimension).                    |
+  | n_class       | int   | 2           | Number of target classes.                                      |
+  | n_hidden      | int   | 50          | Number of hidden nodes, or output channels of CNN.             |
+  | learning_rate | float | 0.01        | Learning rate.                                                 |
+  | l2_reg        | float | 1e-6        | L2 regular.                                                    |
+  | batch_size    | int   | 128         | Number of samples for one batch.                               |
+  | iter_times    | int   | 30          | Number of iterations.                                          |
+  | display_step  | int   | 2           | The number of iterations between each output of the result.    |
+  | drop_prob     | float | 0.1         | Dropout ratio.                                                 |
+  | eval_metric   | str   | 'accuracy'  | Evaluation metrics contain 'accuracy', 'macro', 'class1', etc. |
 
 <br>
 
-## 使用示例
+### Usage
 
-* 分类
+* Classification.
 
   ````python
   from dnnnlp.model import RNNModel
@@ -72,7 +71,7 @@ Version 1.0 by KzXuan
   evals = nn.train_test(device_id=0)
   ````
 
-* 并行
+* Run several times and get the average score.
 
   ````python
   from dnnnlp.model import CNNModel
@@ -91,7 +90,7 @@ Version 1.0 by KzXuan
   avg_evals = average_several_run(nn.cross_validation, args, n_times=8, n_paral=4, fold=5)
   ````
 
-* 网格搜索
+* Parameters' grid search.
 
   ````python
   from dnnnlp.model import TransformerModel
@@ -116,15 +115,8 @@ Version 1.0 by KzXuan
 
 <br>
 
-## 在GPU服务器上的使用
+### History
 
-```python
-from dnnnlp.exec import Classify
-from dnnnlp.model import RNNModel
-from dnnnlp.layer import TransformerLayer
-from dnnnlp import utils, layer, model, exec
-```
 
-<br>
 
-[返回顶部](#PyTorch-深度神经网络模型-自然语言处理)
+[Top](#PyTorch%20-%20Deep%20Neural%20Network%20-%20Natural%20Language%20Processing)

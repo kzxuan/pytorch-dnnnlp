@@ -1,4 +1,4 @@
-## PyTorch - Deep Neural Network - Natural Language Processing
+# PyTorch - Deep Neural Network - Natural Language Processing
 
 Version 1.0 by KzXuan
 
@@ -13,7 +13,7 @@ Coming soon: new sequence labeling support.
 
 <br>
 
-### Introduction
+## Introduction
 
 * Dependecies
 
@@ -47,81 +47,76 @@ Coming soon: new sequence labeling support.
 
 <br>
 
-### Usage
+## Usage
 
-* Classification.
+```python
+# import our modules
+from dnnnlp.model import RNNModel
+from dnnnlp.exec import default_args, Classify
 
-  ````python
-  from dnnnlp.model import RNNModel
-  from dnnnlp.exec import default_args, Classify
+# load the embedding matrix
+emb_mat = np.array(...)
+# load the train data
+train_x = np.array((800, 50, 300))
+train_y = np.array((800,))
+train_mask = np.array((800, 50))
+# load the test data
+test_x = np.array((200, 50, 300))
+test_y = np.array((200,))
+test_mask = np.array((200, 50))
 
-  emb_mat = np.array(...)
-  train_x = np.array((800, 50, 300))
-  train_y = np.array((800,))
-  train_mask = np.array((800, 50))
-  test_x = np.array((200, 50, 300))
-  test_y = np.array((200,))
-  test_mask = np.array((200, 50))
+# get the default arguments
+args = default_args()
+# modify part of the arguments
+args.space_turbo = False
+args.n_hidden = 100
+args.batch_size = 32
+```
 
-  args = default_args()
+* Classification
 
-  model = RNNModel(args, emb_mat, bi_direction=False, rnn_type='GRU', use_attention=True)
-
-  nn = Classify(model, args, train_x, train_y, train_mask, test_x, test_y, test_mask)
-  evals = nn.train_test(device_id=0)
-  ````
+```python
+# initilize a model
+model = RNNModel(args, emb_mat, bi_direction=False, rnn_type='GRU', use_attention=True)
+# initilize a classifier
+nn = Classify(model, args, train_x, train_y, train_mask, test_x, test_y, test_mask)
+# do training and testing
+evals = nn.train_test(device_id=0)
+```
 
 * Run several times and get the average score.
 
-  ````python
-  from dnnnlp.model import CNNModel
-  from dnnnlp.exec import default_args, Classify, average_several_run
-
-  emb_mat = np.array(...)
-  train_x = np.array((1000, 50, 300))
-  train_y = np.array((1000,))
-  train_mask = np.array((1000, 50))
-
-  args = default_args()
-
-  model = CNNModel(args, emb_mat, kernel_widths=[2, 3, 4])
-
-  nn = Classify(model, args, train_x, train_y, train_mask)
-  avg_evals = average_several_run(nn.cross_validation, args, n_times=8, n_paral=4, fold=5)
-  ````
+````python
+# initilize a model
+model = CNNModel(args, emb_mat, kernel_widths=[2, 3, 4])
+# initilize a classifier
+nn = Classify(model, args, train_x, train_y, train_mask)
+# run the model several times
+avg_evals = average_several_run(nn.cross_validation, args, n_times=8, n_paral=4, fold=5)
+````
 
 * Parameters' grid search.
 
-  ````python
-  from dnnnlp.model import TransformerModel
-  from dnnnlp.exec import default_args, Classify, grid_search
-
-  emb_mat = np.array(...)
-  train_x = np.array((800, 50, 300))
-  train_y = np.array((800,))
-  train_mask = np.array((800, 50))
-  test_x = np.array((200, 50, 300))
-  test_y = np.array((200,))
-  test_mask = np.array((200, 50))
-
-  args = default_args()
-
-  model = TransformerModel(args, n_layer=12, n_head=8)
-
-  nn = Classify(model, args, train_x, train_y, train_mask, test_x, test_y, test_mask)
-  params_search = {'learning_rate': [0.1, 0.01], 'n_hidden': [50, 100]}
-  max_evals = grid_search(nn, nn.train_test, args, params_search)
-  ````
+````python
+# initilize a model
+model = TransformerModel(args, n_layer=12, n_head=8)
+# initilize a classifier
+nn = Classify(model, args, train_x, train_y, train_mask, test_x, test_y, test_mask)
+# set searching params
+params_search = {'learning_rate': [0.1, 0.01], 'n_hidden': [50, 100]}
+# run grid search
+max_evals = grid_search(nn, nn.train_test, args, params_search)
+````
 
 <br>
 
-### History
+## History
 
 **version 1.0**
   * Rename project `dnn` to `dnnnlp`.
   * Remove file `base`, add file `utils`.
   * Optimize and rename `SoftmaxLayer` and `SoftAttentionLayer`.
-  * Rewrite and rename `EmbeddingLayer`, `CNNLayer`, `RNNLayer`.
+  * Rewrite and rename `EmbeddingLayer`, `CNNLayer` and `RNNLayer`.
   * Rewrite `MultiheadAttentionLayer`: a packaging attention layer based on `nn.MultiheadAttention`.
   * Rewrite `TransformerLayer`: support new `MultiheadAttentionLayer`.
   * Optimize and rename `CNNModel`, `RNNModel` and `TransformerModel`.
@@ -190,5 +185,3 @@ Coming soon: new sequence labeling support.
   * Initilization of project `dnn`: based on pytorch 0.4.1.
   * Add `LSTM_model`: a packaging LSTM model based on `nn.LSTM`.
   * Add `LSTM_classify`: a classification module for LSTM model, which supports train-test and corss-validation.
-
-[Top](#PyTorch\ -\ Deep\ Neural\ Network\ -\ Natural\ Language\ Processing)

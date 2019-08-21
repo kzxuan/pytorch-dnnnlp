@@ -3,8 +3,8 @@
 """
 Deep neural model
 Ubuntu 16.04 & PyTorch 1.2
-Last update: KzXuan, 2019.08.17
-Version 1.0.2
+Last update: KzXuan, 2019.08.15
+Version 1.0.3
 """
 
 

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Some common models for deep neural network.
-Last update: KzXuan, 2019.08.12
+Last update: KzXuan, 2019.08.21
 """
 import torch
 import numpy as np

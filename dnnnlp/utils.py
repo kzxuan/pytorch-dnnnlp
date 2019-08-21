@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Some utilities for deep neural network.
-Last update: KzXuan, 2019.08.14
+Last update: KzXuan, 2019.08.21
 """
 import sys
 import dnnnlp
@@ -89,7 +89,7 @@ def one_hot(arr, n_class=0):
     return oh
 
 
-def len_to_mask(seq_len, max_seq_len):
+def len_to_mask(seq_len, max_seq_len=None):
     """Convert seq_len to mask matrix.
 
     Args:
@@ -100,10 +100,14 @@ def len_to_mask(seq_len, max_seq_len):
         mask [tensor]: mask matrix (batch_size * max_seq_len)
     """
     if isinstance(seq_len, np.ndarray):
+        if max_seq_len is None:
+            max_seq_len = seq_len.max()
         query = np.arange(0, max_seq_len)
         mask = (query < seq_len.reshape(-1, 1)).astype(int)
     else:
         import torch
+        if max_seq_len is None:
+            max_seq_len = seq_len.max()
         query = torch.arange(0, max_seq_len, device=seq_len.device).float()
         mask = torch.lt(query, seq_len.unsqueeze(1)).int()
     return mask
@@ -141,7 +145,7 @@ def _form_digits(evals, ndigits):
 
 
 def prfacc(y_true, y_pred, mask=None, one_hot=False, ndigits=4, tabular=False):
-    """Evaluation entrance for 2d label.
+    """Evaluation of true label and prediction.
 
     Args:
         y_true [np.array/list]: true label size of (n_sample, *) / (n_sample, *, n_class)
@@ -288,9 +292,12 @@ class display_prfacc(object):
         sysprint(self.sep)
         sysprint("{:^4}".format(evals.get('iter', '-')))
         sysprint(self.sep)
-        sysprint("{:^.4f}".format(evals.get('loss', '-'))[:6])
+        if 'loss' in evals:
+            sysprint("{:^.4f}".format(evals['loss'])[:6])
+        else:
+            sysprint("{:^6}".format('-'))
         sysprint(self.sep)
-        sysprint("{:^.4f}".format(evals.get('accuracy', '-'))[:6])
+        sysprint("{:^.4f}".format(evals['accuracy'])[:6])
         for em in self.eval_metrics:
             sysprint(self.sep)
             value = evals.get(em, '-')

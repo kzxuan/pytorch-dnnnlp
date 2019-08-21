@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 classifyution functions for deep neural models.
-Last update: KzXuan, 2019.08.17
+Last update: KzXuan, 2019.08.21
 """
 import time
 import torch
@@ -48,7 +48,7 @@ def default_args():
     parser.add_argument("-i", "--iter_times", default=30, type=int, help="iteration times")
     parser.add_argument("--display_step", default=2, type=int, help="display inteval")
     parser.add_argument("--drop_prob", default=0.1, type=float, help="drop out ratio")
-    parser.add_argument("--eval_metric", default='acc', type=str, help="evaluation metric")
+    parser.add_argument("--eval_metric", default='accuracy', type=str, help="evaluation metric")
 
     args = parser.parse_args()
     return args
@@ -233,8 +233,8 @@ class Classify(exec):
                 tx, ty, tm = tx.to(self.device_id), ty.to(self.device_id), tm.to(self.device_id)
             pred = self.model(tx, tm, **model_params)
 
-            preds = torch.cat((preds, pred.cpu()))
-            tys = torch.cat((tys, ty.cpu()))
+            preds = torch.cat((preds, pred.cpu().data))
+            tys = torch.cat((tys, ty.cpu().data))
 
         preds = np.argmax(preds.data.numpy(), axis=-1)
         return preds, tys.data.numpy()
@@ -340,6 +340,14 @@ class Classify(exec):
         ptable = utils.display_prfacc(self.eval_metric, verbose=1)
         ptable.row(dict(avg_evals, **{"iter": 'AVG'}))
         return avg_evals
+
+
+class SequenceLabeling(Classify):
+    def __init__(self, model, args, train_x, train_y, train_mask,
+                 test_x=None, test_y=None, test_mask=None):
+        Classify.__init__(
+            model, args, train_x, train_y, train_mask, test_x, test_y, test_mask
+        )
 
 
 def _device_count():

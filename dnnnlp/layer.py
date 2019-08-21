@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Some common layers for deep neural network.
-Last update: KzXuan, 2019.08.15
+Last update: KzXuan, 2019.08.21
 """
 import math
 import torch
@@ -205,7 +205,8 @@ class CNNLayer(nn.Module):
 
 
 class RNNLayer(nn.Module):
-    def __init__(self, input_size, n_hidden, n_layer, bi_direction=True, rnn_type='LSTM', drop_prob=0.1):
+    def __init__(self, input_size, n_hidden, n_layer=1, bi_direction=True,
+                 rnn_type='LSTM', drop_prob=0.1):
         """Initilize RNN layer.
 
         Args:
@@ -290,6 +291,11 @@ class RNNLayer(nn.Module):
             return outputs  # batch_size * max_seq_len * (bi_direction * n_hidden)
 
 
+class CRFLayer(nn.Module):
+    def __init__(self):
+        super(CRFLayer, self).__init__()
+
+
 class MultiheadAttentionLayer(nn.Module):
     def __init__(self, input_size, n_head=8, drop_prob=0.1):
         """Initilize multi-head attention layer.
@@ -312,7 +318,7 @@ class MultiheadAttentionLayer(nn.Module):
             key [tensor]: key tensor (batch_size * max_seq_len_key * input_size)
             value [tensor]: value tensor (batch_size * max_seq_len_key * input_size)
             query_mask [tensor]: query mask matrix (batch_size * max_seq_len_query)
-            key_mask [tensor]: key mask matrix (batch_size * max_seq_len_query)
+            key_mask [tensor]: key mask matrix (batch_size * max_seq_len_key)
 
         Returns:
             outputs [tensor]: output tensor (batch_size * max_seq_len_query * input_size)
@@ -378,7 +384,8 @@ class TransformerLayer(nn.Module):
         self.drop_out_3 = nn.Dropout(drop_prob)
         self.norm_2 = nn.LayerNorm(input_size)
 
-    def forward(self, query, key=None, value=None, query_mask=None, key_mask=None, out_type='first'):
+    def forward(self, query, key=None, value=None, query_mask=None,
+                key_mask=None, out_type='first'):
         """Forward propagation.
 
         Args:
@@ -386,7 +393,7 @@ class TransformerLayer(nn.Module):
             key [tensor]: key tensor (batch_size * max_seq_len_key * input_size)
             value [tensor]: value tensor (batch_size * max_seq_len_key * input_size)
             query_mask [tensor]: query mask matrix (batch_size * max_seq_len_query)
-            key_mask [tensor]: key mask matrix (batch_size * max_seq_len_query)
+            key_mask [tensor]: key mask matrix (batch_size * max_seq_len_key)
             out_type [str]: use 'first'/'all' to choose
 
         Returns:
@@ -395,7 +402,9 @@ class TransformerLayer(nn.Module):
         """
         assert query.dim() == 3, "Dimension error of 'query'."
         assert query.size(-1) == self.input_size, "Dimension error of 'query'."
-        assert out_type in ['first', 'all'], ValueError("Value error of 'out_type', only accepts 'first'/'all'.")
+        assert out_type in ['first', 'all'], ValueError(
+            "Value error of 'out_type', only accepts 'first'/'all'."
+        )
 
         outputs = self.attention(query, key, value, query_mask, key_mask)
         # residual connection

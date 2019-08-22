@@ -1,4 +1,4 @@
-# PyTorch - Deep Neural Network - Natural Language Processing
+## PyTorch - Deep Neural Network - Natural Language Processing
 
 Version 1.0 by KzXuan
 
@@ -13,41 +13,43 @@ Coming soon: new sequence labeling support.
 
 <br>
 
-## Introduction
+### Dependecies
 
-* Dependecies
+python 3.5+ & pytorch 1.2.0+
 
-  python >= 3.5 & pytorch >= 1.2.0
+<br>
 
-* [API Document](./docs.md)
+### [API Document](./docs.md)
 
   * [Layer](./docs.md#Layer) - [layer.py](./dnnnlp/layer.py)
   * [Model](./docs.md#Model) -  [model.py](./dnnnlp/model.py)
   * [Execution](./docs.md#Execution) - [exec.py](./dnnnlp/exec.py)
   * [Utility](./docs.md#Utility) - [utils.py](./dnnnlp/utils.py)
 
-* Hyperparameters
+<br>
 
-  | Name          | Type  | Default     | Description                                                    |
-  | ------------- | ----- | ----------- | -------------------------------------------------------------- |
-  | n_gpu         | int   | 1           | The number of GPUs (0 means no GPU acceleration).              |
-  | space_turbo   | bool  | True        | Accelerate with more GPU memories.                             |
-  | data_shuffle  | bool  | Ture        | Disrupt data for training.                                     |
-  | emb_type      | str   | None        | Embedding modes contain None, 'const' or 'variable'.           |
-  | emb_dim       | int   | 300         | Embedding dimension (or feature dimension).                    |
-  | n_class       | int   | 2           | Number of target classes.                                      |
-  | n_hidden      | int   | 50          | Number of hidden nodes, or output channels of CNN.             |
-  | learning_rate | float | 0.01        | Learning rate.                                                 |
-  | l2_reg        | float | 1e-6        | L2 regular.                                                    |
-  | batch_size    | int   | 128         | Number of samples for one batch.                               |
-  | iter_times    | int   | 30          | Number of iterations.                                          |
-  | display_step  | int   | 2           | The number of iterations between each output of the result.    |
-  | drop_prob     | float | 0.1         | Dropout ratio.                                                 |
-  | eval_metric   | str   | 'accuracy'  | Evaluation metrics contain 'accuracy', 'macro', 'class1', etc. |
+### Hyperparameters
+
+| Name          | Type  | Default     | Description                                                    |
+| ------------- | ----- | ----------- | -------------------------------------------------------------- |
+| n_gpu         | int   | 1           | The number of GPUs (0 means no GPU acceleration).              |
+| space_turbo   | bool  | True        | Accelerate with more GPU memories.                             |
+| data_shuffle  | bool  | Ture        | Disrupt data for training.                                     |
+| emb_type      | str   | None        | Embedding modes contain None, 'const' or 'variable'.           |
+| emb_dim       | int   | 300         | Embedding dimension (or feature dimension).                    |
+| n_class       | int   | 2           | Number of target classes.                                      |
+| n_hidden      | int   | 50          | Number of hidden nodes, or output channels of CNN.             |
+| learning_rate | float | 0.01        | Learning rate.                                                 |
+| l2_reg        | float | 1e-6        | L2 regular.                                                    |
+| batch_size    | int   | 128         | Number of samples for one batch.                               |
+| iter_times    | int   | 30          | Number of iterations.                                          |
+| display_step  | int   | 2           | The number of iterations between each output of the result.    |
+| drop_prob     | float | 0.1         | Dropout ratio.                                                 |
+| eval_metric   | str   | 'accuracy'  | Evaluation metrics contain 'accuracy', 'macro', 'class1', etc. |
 
 <br>
 
-## Usage
+### Usage
 
 ```python
 # import our modules
@@ -110,7 +112,7 @@ max_evals = grid_search(nn, nn.train_test, args, params_search)
 
 <br>
 
-## History
+### History
 
 **version 1.0**
   * Rename project `dnn` to `dnnnlp`.

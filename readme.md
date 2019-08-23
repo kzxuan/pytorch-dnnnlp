@@ -19,6 +19,16 @@ python 3.5+ & pytorch 1.2.0+
 
 <br>
 
+### Install
+
+Only for version 1.0.3 now.
+
+```bash
+pip install dnnnlp
+```
+
+<br>
+
 ### [API Document](./docs.md)
 
   * [Layer](./docs.md#Layer) - [layer.py](./dnnnlp/layer.py)
@@ -57,13 +67,13 @@ from dnnnlp.model import RNNModel
 from dnnnlp.exec import default_args, Classify
 
 # load the embedding matrix
-emb_mat = np.array(...)
+emb_mat = np.array((-1, 300))
 # load the train data
-train_x = np.array((800, 50, 300))
+train_x = np.array((800, 50))
 train_y = np.array((800,))
 train_mask = np.array((800, 50))
 # load the test data
-test_x = np.array((200, 50, 300))
+test_x = np.array((200, 50))
 test_y = np.array((200,))
 test_mask = np.array((200, 50))
 
@@ -130,6 +140,8 @@ max_evals = grid_search(nn, nn.train_test, args, params_search)
   * Update `RNN_layer`: fully support for tanh, LSTM and GRU.
   * Fix errors in some mask operations.
   * Support pytorch 1.1.0.
+
+Old version [0.12.3](https://github.com/NUSTM/pytorch-dnnnlp/tree/8d2d6c4e432076e13020ae54954aa419f3bb9bce).
 
 **version 0.11**
   * Provides an acceleration method by using more GPU memories.

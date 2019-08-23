@@ -4,8 +4,9 @@
 Deep neural model
 Ubuntu 16.04 & PyTorch 1.2
 Last update: KzXuan, 2019.08.15
-Version 1.0.3
 """
+__name__ = "dnnnlp"
+__version__ = "1.0.3"
 
 
 # verbose for output portion

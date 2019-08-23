@@ -354,6 +354,7 @@ class MultiheadAttentionLayer(nn.Module):
         outputs, _ = self.attention(query, key, value, key_padding_mask=~key_mask.bool())
         # transpose back
         outputs = outputs.transpose(0, 1)
+        outputs = outputs.masked_fill(torch.isnan(outputs), 0)
         if query_mask is not None:
             query_mask = query_mask.unsqueeze(2)
             outputs = outputs.masked_fill(~query_mask.bool(), 0)

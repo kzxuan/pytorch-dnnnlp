@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Some utilities for deep neural network.
-Last update: KzXuan, 2019.08.21
+Last update: KzXuan, 2019.08.22
 """
 import sys
 import dnnnlp
@@ -192,6 +192,8 @@ def prfacc(y_true, y_pred, mask=None, one_hot=False, ndigits=4, tabular=False):
     if not tabular:
         evals['macro'] = evals.pop("macro avg")
         evals['weighted'] = evals.pop("weighted avg")
+        p, r = evals['macro']['precision'], evals['macro']['recall']
+        evals['macro']['f1-score'] = 2 * p * r / (p + r)
         _form_digits(evals, ndigits)
 
     return evals

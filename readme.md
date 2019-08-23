@@ -19,6 +19,14 @@ python 3.5+ & pytorch 1.2.0+
 
 <br>
 
+### Install
+
+```bash
+> pip install dnnnlp
+```
+
+<br>
+
 ### [API Document](./docs.md)
 
   * [Layer](./docs.md#Layer) - [layer.py](./dnnnlp/layer.py)

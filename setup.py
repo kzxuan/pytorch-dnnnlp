@@ -7,8 +7,8 @@ with open("readme.md", "r", encoding='utf-8') as fobj:
     long_description = fobj.read()
 
 setup(
-    name="dnnnlp",
-    version="1.0.3",
+    name=dnnnlp.__name__,
+    version=dnnnlp.__version__,
     author="KzXuan",
     author_email="kaizhouxuan@gmail.com",
     description="Deep Neural Networks for Natural Language Processing classification or sequential task written by PyTorch.",
@@ -18,7 +18,9 @@ setup(
     url="https://github.com/NUSTM/pytorch-dnnnlp",
     packages=find_packages(),
     install_requires=[
-        "torch >= 1.2.0",
+        "numpy",
+        "scikit-learn",
+        "torch >= 1.2.0"
         ],
     classifiers=[
         "License :: Free for non-commercial use",

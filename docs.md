@@ -199,7 +199,7 @@ model = model.RNNModel(args, emb_matrix, n_hierarchy=2, rnn_type='GRU')
 pred = model(inputs, mask)
 ```
 
-*Tip: 参数n_hierarchy用以控制模型的层次，每个层次会使得消除一个序列长度的维度，例如词-句子层次/句子-文档层次；参数n_layer用以控制每个层次内的RNN层数，每个RNN层将在pytorch内部直接叠加。*
+*Tip: 参数n_hierarchy用以控制模型的层次，每个层次会消除一个序列长度的维度，例如词-句子层次/句子-文档层次；参数n_layer用以控制每个层次内的RNN层数，每个RNN层将在pytorch内部直接叠加。*
 
 <br>
 
@@ -328,7 +328,7 @@ max_score = grid_search(nn, nn.train_test, args, params_search)
 &nbsp;&nbsp;&nbsp;&nbsp;
 评估预测概率与真实标签，获得所有评估指标。
 
-  * 封装sklearn中的classification_report方法。（对sklearn提供的macro-f1计算方法尚存争议）
+  * 封装sklearn中的classification_report方法，调整了宏平均f1值的计算方式。
   * **标签和预测可以是任意维度，但必须维度相等。**
   * **对于序列标注等任务，可以传入mask矩阵标记序列有效长度。**
   * **支持输入格式为list/np.ndarray/torch.tensor。**

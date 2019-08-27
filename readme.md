@@ -49,7 +49,7 @@ python 3.5+ & pytorch 1.2.0+
 | n_hidden      | int   | 50          | Number of hidden nodes, or output channels of CNN.             |
 | learning_rate | float | 0.01        | Learning rate.                                                 |
 | l2_reg        | float | 1e-6        | L2 regular.                                                    |
-| batch_size    | int   | 128         | Number of samples for one batch.                               |
+| batch_size    | int   | 32          | Number of samples for one batch.                               |
 | iter_times    | int   | 30          | Number of iterations.                                          |
 | display_step  | int   | 2           | The number of iterations between each output of the result.    |
 | drop_prob     | float | 0.1         | Dropout ratio.                                                 |

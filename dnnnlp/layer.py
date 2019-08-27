@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Some common layers for deep neural network.
-Last update: KzXuan, 2019.08.21
+Last update: KzXuan, 2019.08.26
 """
 import math
 import torch
@@ -190,10 +190,9 @@ class CNNLayer(nn.Module):
 
         # all modes need to consider mask
         if out_type == 'max':
-            outputs = outputs.masked_fill(~mask.bool(), -1e10)
+            outputs = outputs.masked_fill(~mask.bool(), float("-inf"))
             outputs = F.max_pool1d(outputs, left_len).reshape(-1, self.out_channels)
-            isinf = outputs.eq(-1e10)
-            outputs = outputs.masked_fill(isinf, 0)
+            outputs = outputs.masked_fill(torch.isinf(outputs), 0)
         elif out_type == 'mean':
             outputs = outputs.masked_fill(~mask.bool(), 0)
             lens = torch.sum(mask, dim=-1)

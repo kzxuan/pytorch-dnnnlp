@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Some common models for deep neural network.
-Last update: KzXuan, 2019.08.21
+Last update: KzXuan, 2019.08.27
 """
 import torch
 import numpy as np
@@ -136,6 +136,7 @@ class TransformerModel(nn.Module):
             args [dict]: all model arguments
             emb_matrix [np.array]: word embedding matrix
             n_layer [int]: number of RNN layer in a hierarchy
+            n_head [int]: number of attention heads
         """
         super(TransformerModel, self).__init__()
 

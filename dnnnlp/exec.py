@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 classifyution functions for deep neural models.
-Last update: KzXuan, 2019.08.21
+Last update: KzXuan, 2019.08.25
 """
 import time
 import torch
@@ -44,7 +44,7 @@ def default_args():
     parser.add_argument("--n_hidden", default=50, type=int, help="hidden layer nodes")
     parser.add_argument("-lr", "--learning_rate", default=0.01, type=float, help="learning rate")
     parser.add_argument("-l2", "--l2_reg", default=1e-6, type=float, help="l2 regularization")
-    parser.add_argument("-b", "--batch_size", default=128, type=int, help="batch size")
+    parser.add_argument("-b", "--batch_size", default=32, type=int, help="batch size")
     parser.add_argument("-i", "--iter_times", default=30, type=int, help="iteration times")
     parser.add_argument("--display_step", default=2, type=int, help="display inteval")
     parser.add_argument("--drop_prob", default=0.1, type=float, help="drop out ratio")

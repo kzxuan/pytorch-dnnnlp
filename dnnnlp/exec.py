@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 classifyution functions for deep neural models.
-Last update: KzXuan, 2019.08.25
+Last update: KzXuan, 2019.08.28
 """
 import time
 import torch
@@ -142,9 +142,9 @@ class Classify(exec):
         self.train_x = torch.as_tensor(train_x, dtype=torch.float)
         self.train_y = torch.as_tensor(train_y, dtype=torch.long)
         self.train_mask = torch.as_tensor(train_mask, dtype=torch.int)
-        self.test_x = torch.as_tensor(test_x, dtype=torch.float) if test_x else test_x
-        self.test_y = torch.as_tensor(test_y, dtype=torch.long) if test_y else test_y
-        self.test_mask = torch.as_tensor(test_mask, dtype=torch.int) if test_mask else test_mask
+        self.test_x = test_x if test_x is None else torch.as_tensor(test_x, dtype=torch.float)
+        self.test_y = test_y if test_y is None else torch.as_tensor(test_y, dtype=torch.long)
+        self.test_mask = test_mask if test_mask is None else torch.as_tensor(test_mask, dtype=torch.int)
 
     def _model_initilize(self, device_id):
         """Given initilize fuction for model.
@@ -182,7 +182,7 @@ class Classify(exec):
             self.train_x = self.train_x.to(self.device_id)
             self.train_y = self.train_y.to(self.device_id)
             self.train_mask = self.train_mask.to(self.device_id)
-            if self.test_x:
+            if self.test_x is not None:
                 self.test_x = self.test_x.to(self.device_id)
                 self.test_y = self.test_y.to(self.device_id)
                 self.test_mask = self.test_mask.to(self.device_id)
@@ -222,8 +222,7 @@ class Classify(exec):
             model_params [parameter]: more parameters for model
 
         Returns:
-            preds [np.array]: predicts of the test data
-            tys [np.array]: true label of the test data
+            evals [dict]: dict of all the evaluation metrics
         """
         self.model.eval()
 
@@ -237,7 +236,8 @@ class Classify(exec):
             tys = torch.cat((tys, ty.cpu().data))
 
         preds = np.argmax(preds.data.numpy(), axis=-1)
-        return preds, tys.data.numpy()
+        evals = utils.prfacc(tys.data.numpy(), preds, one_hot=False)
+        return evals
 
     def train_test(self, device_id=0):
         """Run training and testing.
@@ -248,7 +248,7 @@ class Classify(exec):
         Returns:
             best_evals [dict]: the best evaluation metrics
         """
-        assert self.test_x and self.test_y and self.test_mask, ValueError("Test x or y or mask may not exist.")
+        assert self.test_x is not None, ValueError("Test x or y or mask may not exist.")
         self._model_initilize(device_id)
 
         train_loader = self.create_data_loader(
@@ -263,16 +263,15 @@ class Classify(exec):
         ptable = utils.display_prfacc(self.eval_metric, verbose=2)
         for it in range(1, self.iter_times + 1):
             loss = self._run_train(train_loader)
-            pred, ty = self._run_test(test_loader)
+            evals = self._run_test(test_loader)
 
-            evals = utils.prfacc(ty, pred, one_hot=False)
             evals.update({'iter': it, 'loss': loss})
             if it % self.display_step == 0:
                 ptable.row(evals)
             results.append(evals)
 
         best_evals = utils.maximum_prfacc(*results, eval_metric=self.eval_metric)
-        ptable = utils.display_prfacc(self.eval_metric, verbose=1)
+        ptable.line()
         ptable.row(dict(best_evals, **{"iter": 'BEST'}))
         return best_evals
 
@@ -312,17 +311,15 @@ class Classify(exec):
             )
 
             if dnnnlp.verbose.check(2):
-                print()
-                print("Fold {}, label {}".format(count, self.train_y[test].bincount().cpu().numpy()))
+                print("\nFold {}".format(count))
             self.model.load_state_dict(self.model_init)
 
             results = []
             ptable = utils.display_prfacc(self.eval_metric, verbose=2)
             for it in range(1, self.iter_times + 1):
                 loss = self._run_train(train_loader)
-                pred, ty = self._run_test(test_loader)
+                evals = self._run_test(test_loader)
 
-                evals = utils.prfacc(ty, pred, one_hot=False)
                 evals.update({'iter': it, 'loss': loss})
                 if it % self.display_step == 0:
                     ptable.row(evals)
@@ -345,9 +342,72 @@ class Classify(exec):
 class SequenceLabeling(Classify):
     def __init__(self, model, args, train_x, train_y, train_mask,
                  test_x=None, test_y=None, test_mask=None):
+        """Initilize sequence labeling method.
+
+        Args:
+            model [nn.Module]: a standart pytorch model
+            args [dict]: all model arguments
+            train_x [np.array/tensor]: training data
+            train_y [np.array/tensor]: training label
+            train_mask [np.array/tensor]: training mask
+            test_x [np.array/tensor]: testing data
+            test_y [np.array/tensor]: testing label
+            test_mask [np.array/tensor]: testing mask
+        """
         Classify.__init__(
-            model, args, train_x, train_y, train_mask, test_x, test_y, test_mask
+            self, model, args, train_x, train_y, train_mask, test_x, test_y, test_mask
         )
+
+    def _run_train(self, train_loader, **model_params):
+        """Training part.
+
+        Args:
+            train_loader [DataLoader]: train data generator
+            model_params [parameter]: more parameters for model
+
+        Returns:
+            losses [float]: loss of one iteration
+        """
+        self.model.train()
+
+        loss = 0.0
+        for step, (x, y, m) in enumerate(train_loader):
+            if not self.space_turbo and self.n_gpu:
+                x, y, m = x.to(self.device_id), y.to(self.device_id), m.to(self.device_id)
+            batch_loss = self.model(x, m, y, **model_params)
+
+            self.optimizer.zero_grad()
+            batch_loss.backward()
+            self.optimizer.step()
+
+            loss += batch_loss.cpu().data.numpy()
+        loss = loss / (step + 1)
+        return loss
+
+    def _run_test(self, test_loader, **model_params):
+        """Testing part.
+
+        Args:
+            test_loader [DataLoader]: test data generator
+            model_params [parameter]: more parameters for model
+
+        Returns:
+            evals [dict]: dict of all the evaluation metrics
+        """
+        self.model.eval()
+
+        preds, tys, tmask = torch.LongTensor(), torch.LongTensor(), torch.IntTensor()
+        for _, (tx, ty, tm) in enumerate(test_loader):
+            if not self.space_turbo and self.n_gpu:
+                tx, ty, tm = tx.to(self.device_id), ty.to(self.device_id), tm.to(self.device_id)
+            pred = self.model(tx, tm, **model_params)
+
+            preds = torch.cat((preds, pred.cpu().data))
+            tys = torch.cat((tys, ty.cpu().data))
+            tmask = torch.cat((tmask, tm.cpu().data))
+
+        evals = utils.prfacc(tys.data.numpy(), preds.data.numpy(), tmask.data.numpy(), one_hot=False)
+        return evals
 
 
 def _device_count():

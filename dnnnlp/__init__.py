@@ -3,10 +3,10 @@
 """
 Deep neural model
 Ubuntu 16.04 & PyTorch 1.2
-Last update: KzXuan, 2019.08.25
+Last update: KzXuan, 2019.08.28
 """
 __name__ = "dnnnlp"
-__version__ = "1.0.4"
+__version__ = "1.1.0"
 
 
 # verbose for output portion

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Some common layers for deep neural network.
-Last update: KzXuan, 2019.08.26
+Last update: KzXuan, 2019.08.28
 """
 import math
 import torch
@@ -10,6 +10,7 @@ import numpy as np
 import torch.nn as nn
 import torch.utils.data as Data
 import torch.nn.functional as F
+from torchcrf import CRF
 
 
 class EmbeddingLayer(nn.Module):
@@ -291,8 +292,52 @@ class RNNLayer(nn.Module):
 
 
 class CRFLayer(nn.Module):
-    def __init__(self):
+    def __init__(self, n_class):
+        """Initilize CRF layer.
+
+        Args:
+            n_class [int]: the last dim of the input equals to class number
+        """
         super(CRFLayer, self).__init__()
+
+        self.crf = CRF(n_class, batch_first=True)
+
+    def forward(self, inputs, mask=None, tags=None):
+        """Forward propagation.
+
+        Args:
+            inputs [tensor]: input tensor (batch_size * max_seq_len * input_size)
+            mask [tensor]: mask matrix (batch_size * max_seq_len)
+            tags [tensor]: label matrix (batch_size * max_seq_len)
+
+        Returns:
+            outputs [tensor]: the mean value of batch neg log likelihood
+            pred [tensor]: the predict label pad with -1
+        """
+        assert inputs.dim() == 3, "Dimension error of 'inputs'."
+        assert mask is None or mask.dim() == 2, "Dimension error of 'mask'."
+        if mask is not None:
+            mask = mask.bool()
+            reduction = 'token_mean'
+        else:
+            reduction = 'mean'
+
+        # training part
+        if tags is not None:
+            outputs = self.crf(inputs, tags, mask, reduction=reduction)
+
+            return outputs.neg()
+        # testing part
+        else:
+            outputs = self.crf.decode(inputs, mask)
+            max_seq_len = inputs.size(1)
+            label = torch.as_tensor(
+                [e + [-1] * (max_seq_len - len(e)) for e in outputs],
+                dtype=torch.long,
+                device=inputs.device
+            )
+
+            return label
 
 
 class MultiheadAttentionLayer(nn.Module):

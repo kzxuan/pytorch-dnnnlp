@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Some common models for deep neural network.
-Last update: KzXuan, 2019.08.27
+Last update: KzXuan, 2019.08.28
 """
 import torch
 import numpy as np
@@ -114,18 +114,67 @@ class RNNModel(nn.Module):
         outputs = self.drop_out(inputs)
         for hi in range(self.n_hierarchy):
             outputs = outputs.reshape(-1, max_seq_len[hi], outputs.size(-1))
-            mask = mask.reshape(-1, max_seq_len[hi])
+            if mask is not None:
+                mask = mask.reshape(-1, max_seq_len[hi])
 
             if self.use_attention:
                 outputs = self.rnn[hi](outputs, mask, out_type='all')
                 outputs = self.att[hi](outputs, mask)
             else:
                 outputs = self.rnn[hi](outputs, mask, out_type='last')
-
-            mask = (mask.sum(-1) != 0).int()
+            if mask is not None:
+                mask = (mask.sum(-1) != 0).int()
 
         pred = self.predict(outputs)
         return pred
+
+
+class RNNCRFModel(nn.Module):
+    def __init__(self, args, emb_matrix=None, n_layer=1, bi_direction=True, rnn_type='LSTM'):
+        """Initilize RNN-CRF model data and layer.
+
+        Args:
+            args [dict]: all model arguments
+            emb_matrix [np.array]: word embedding matrix
+            n_layer [int]: number of RNN layer in a hierarchy
+            bi_direction [bool]: use bi-directional model or not
+            rnn_type [str]: choose rnn type with 'tanh'/'LSTM'/'GRU'
+        """
+        super(RNNCRFModel, self).__init__()
+
+        self.bi_direction_num = 2 if bi_direction else 1
+
+        self.emb_mat = layer.EmbeddingLayer(emb_matrix, args.emb_type)
+        self.drop_out = nn.Dropout(args.drop_prob)
+
+        rnn_params = (args.n_hidden, n_layer, bi_direction, rnn_type, args.drop_prob)
+        self.rnn = layer.RNNLayer(args.emb_dim, *rnn_params)
+        self.linear = nn.Linear(self.bi_direction_num * args.n_hidden, args.n_class)
+        self.crf = layer.CRFLayer(args.n_class)
+
+    def forward(self, inputs, mask=None, tags=None):
+        """Forward propagation.
+
+        Args:
+            inputs [tensor]: input tensor (batch_size * max_seq_len * input_size)
+            mask [tensor]: mask matrix (batch_size * max_seq_len)
+            tags [tensor]: label matrix (batch_size * max_seq_len)
+
+        Returns:
+            loss_or_label [tensor]: neg log likelihood loss of the model
+                                   or the predict label pad with -1
+        """
+        inputs = self.emb_mat(inputs)
+        assert inputs.dim() == 3, "Dimension error of 'inputs', check args.emb_type & emb_dim."
+        if mask is not None:
+            assert inputs.shape[:-1] == mask.shape, "Dimension match error of 'inputs' and 'mask'."
+
+        outputs = self.drop_out(inputs)
+        outputs = self.rnn(outputs, mask, out_type='all')
+        outputs = self.linear(outputs)
+        loss_or_label = self.crf(outputs, mask, tags)
+
+        return loss_or_label
 
 
 class TransformerModel(nn.Module):

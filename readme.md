@@ -1,15 +1,13 @@
 ## PyTorch - Deep Neural Network - Natural Language Processing
 
-Version 1.0 by KzXuan
+Version 1.1 by KzXuan
 
-**Contains CNN, RNN and Transformer layers and models implemented by pytorch for classification tasks in NLP.**
+**Contains CNN, RNN and Transformer layers and models implemented by pytorch for classification and sequence labeling tasks in NLP.**
 
 * Newly designed modules.
 * Reduce usage complexity.
 * Use `mask` as the sequence length identifier.
 * Multi-GPU parallel for grid search.
-
-Coming soon: new sequence labeling support.
 
 <br>
 
@@ -19,7 +17,7 @@ python 3.5+ & pytorch 1.2.0+
 
 <br>
 
-### Install
+### [Install](https://pypi.org/project/dnnnlp/)
 
 ```bash
 > pip install dnnnlp
@@ -102,7 +100,7 @@ model = CNNModel(args, emb_mat, kernel_widths=[2, 3, 4])
 # initilize a classifier
 nn = Classify(model, args, train_x, train_y, train_mask)
 # run the model several times
-avg_evals = average_several_run(nn.cross_validation, args, n_times=8, n_paral=4, fold=5)
+avg_evals = average_several_run(nn.train_test, args, n_times=8, n_paral=4, fold=5)
 ````
 
 * Parameters' grid search.
@@ -118,9 +116,33 @@ params_search = {'learning_rate': [0.1, 0.01], 'n_hidden': [50, 100]}
 max_evals = grid_search(nn, nn.train_test, args, params_search)
 ````
 
+* Sequence labeling
+
+```python
+from dnnnlp.model import RNNCRFModel
+from dnnnlp.exec import default_args, SequenceLabeling
+
+# load the train data
+train_x = np.array((1000, 50))
+train_y = np.array((1000, 50))
+train_mask = np.array((1000, 50))
+
+# initilize a model
+model = CNNCRFModel(args)
+# initilize a labeler
+nn = SequenceLabeling(model, args, train_x, train_y, train_mask)
+# do cross validation
+nn.cross_validation(fold=5)
+```
+
 <br>
 
 ### History
+
+**version 1.1**
+  * Add `CRFLayer`: packaging CRF for both training and testing
+  * Add `RNNCRFModel`: a integrated RNN-CRF sequence labeling model
+  * Add `SequenceLabeling`: a sequence labeling execution module that inherits from Classify.
 
 **version 1.0**
   * Rename project `dnn` to `dnnnlp`.

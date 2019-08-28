@@ -1,6 +1,6 @@
 # API
 
-Version 1.0 by KzXuan
+Version 1.1 by KzXuan
 
   * [Layer](#layer)
   * [Model](#model)

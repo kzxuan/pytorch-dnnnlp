@@ -18,7 +18,7 @@ Version 1.0 by KzXuan
 Embedding层，将词向量查询矩阵转化成torch内的可用变量。
 
   * 提供None/"const"/"variable"三种模式，对应无查询矩阵/不可调/可调模式。
-  * **调用时传入原始输入即可，无需将输入转化成long类型。**
+  * **调用时送入原始输入即可，无需将输入转化成long类型。**
 
 ```python
 # 导入已有Embedding矩阵，训练中矩阵不可变
@@ -55,10 +55,10 @@ prediction = sl(inputs)
 &nbsp;&nbsp;&nbsp;&nbsp;
 简单的Attention层，为序列上的每一个位置生成权重并加和。
 
-  * 调用时需要传入一个三位的inputs和二维的mask[可选]来保证模型的正常运行。
+  * 调用时需要送入一个三位的inputs和二维的mask[可选]来保证模型的正常运行。
 
 ```python
-# 注意力机制
+# 创建注意力机制层
 sal = SoftAttentionLayer(input_size)
 # 调用
 outputs = sal(inputs)
@@ -72,8 +72,8 @@ outputs = sal(inputs)
 &nbsp;&nbsp;&nbsp;&nbsp;
 封装的CNN层，支持最大池化和平均池化，支持自定义激活函数。
 
-  * **调用时需要传入一个四维的inputs和二维的mask[可选]来保证模型的正常运行。**
-  * 若传入的inputs为三维，会自动添加一个第二维，并在第二维上复制in_channels次。
+  * **调用时需要送入一个四维的inputs和二维的mask[可选]来保证模型的正常运行。**
+  * 若送入的inputs为三维，会自动添加一个第二维，并在第二维上复制in_channels次。
   * 可选择输出模式'max'/'mean'/'all'来分别得到最大池化后的输出，平均池化后的输出或原始的全部输出。
 
 ```python
@@ -95,7 +95,7 @@ outputs = torch.cat([c(inputs, seq_len, out_type='max') for c in cnn_set], -1)
 &nbsp;&nbsp;&nbsp;&nbsp;
 封装的RNN层，支持tanh/LSTM/GRU，支持单/双向及多层堆叠。
 
-  * **调用时需要传入一个三维的inputs和二维的mask[可选]来保证模型的正常运行。**
+  * **调用时需要送入一个三维的inputs和二维的mask[可选]来保证模型的正常运行。**
   * 可选择输出模式'last'/'all'来分别得到最后一层的最后一个时间步的输出，或最后一层的全部隐层输出。
 
 ```python
@@ -115,6 +115,28 @@ outputs = rnn_stack[1](outputs, seq_len_2, out_type='last')
 
 <br>
 
+> **CRFLayer(n_class)** <br>
+>> forward(inputs, mask=None, tags=None)
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+封装的CRF层，融合训练和测试模式。
+
+  * **调用时需要送入一个三维的inputs和二维的mask[可选]来保证模型的正常运行。**
+  * **送入二维的tags时进入CRF的训练状态，未送入tags时为测试状态。**
+  * 训练状态下的输出为NLLLoss。
+  * 测试状态下的输出为预测标签矩阵，序列无效部分由-1补齐。
+
+```python
+# 创建CRF层
+crf = layer.CRFLayer(2)
+# 送入训练数据
+loss = crf(train_inputs, train_mask, train_y)
+# 送入测试数据
+label = crf(test_inputs, test_mask)
+```
+
+<br>
+
 > **MultiheadAttentionLayer(self, input_size, n_head=8, drop_prob=0.1)** <br>
 >> forward(query, key=None, value=None, query_mask=None, key_mask=None)
 
@@ -123,15 +145,15 @@ outputs = rnn_stack[1](outputs, seq_len_2, out_type='last')
 
   * 使用batch作为数据的第一维，与官方接口不同。
   * 分别为query和key提供mask选项。
-  * **调用时需要传入一个三维的query和二维的query_mask[可选]来保证模型的正常运行。**
+  * **调用时需要送入一个三维的query和二维的query_mask[可选]来保证模型的正常运行。**
   * **单独提供query输入时，key和value复制query的值，key_mask复制query_mask的值。**
   * **提供query和key输入时，value复制key的值。**
 
 
 ```python
-# 调用多头注意力机制
+# 创建多头注意力机制层
 mal = layer.MultiheadAttentionLayer(input_size, n_head=8, drop_prob=0.1)
-# 仅提供query和key以及对应的mask矩阵
+# 调用时仅提供query和key以及对应的mask矩阵
 outputs = mal(query, key, query_mask=query_mask, key_mask=key_mask)
 ```
 
@@ -203,6 +225,26 @@ pred = model(inputs, mask)
 
 <br>
 
+> RNNCRFModel(args, emb_matrix=None, n_layer=1, bi_direction=True, rnn_type='LSTM'):
+>> forward(inputs, mask=None, tags=None)
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+RNN-CRF序列标注模型的封装，模型返回NLLLoss或者预测标签矩阵。
+
+  * **在训练时向模型送入训练数据的真实标签，测试时不可送入测试数据的标签。**
+  * 不支持层次结构。
+
+```python
+# 模型初始化
+model = model.RNNCRFModel(args, emb_matrix, rnn_type='LSTM')
+# 训练时tags是必选参数
+loss = model(train_inputs, tags=y)
+# 测试时无需tags
+label = model(test_inputs)
+```
+
+<br>
+
 > **TransformerModel(args, emb_matrix=None, n_layer=6, n_head=8)** <br>
 >> forward(inputs, mask=None)
 
@@ -260,7 +302,7 @@ args.batch_size = 32
 &nbsp;&nbsp;&nbsp;&nbsp;
 分类运行模块，提供完整的模型执行过程。
 
-  * **需要传入一个有效的pytorch模型，该模型的返回值应是LogSoftmax后的预测概率。**
+  * **需要送入一个有效的pytorch模型，该模型的返回值应是LogSoftmax后的预测概率。**
 
     *Tip: 若模型的返回值是Linear层的输出，可以修改实例化后的类内变量loss_function = nn.CrossEntropyLoss()。*
 
@@ -279,6 +321,15 @@ args.batch_size = 32
     (3) cross_validation(fold=10, device_id=0)：k折交叉数据的调用函数
 
     *Tip: device_id可以用来选择模型的运行硬件，-1表示使用CPU运行，0/1/...表示使用第几块GPU运行。*
+
+<br>
+
+> **SequenceLabeling(model, args, train_x, train_y, train_mask, test_x=None, test_y=None, test_mask=None, class_name=None, device_id=0)**
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+序列标注运行模块，提供完整的模型执行过程。当前只支持RNNCRFModel作为模型输入。
+
+  * 接口和运行模式同Classify。
 
 <br>
 
@@ -330,7 +381,7 @@ max_score = grid_search(nn, nn.train_test, args, params_search)
 
   * 封装sklearn中的classification_report方法，调整了宏平均f1值的计算方式。
   * **标签和预测可以是任意维度，但必须维度相等。**
-  * **对于序列标注等任务，可以传入mask矩阵标记序列有效长度。**
+  * **对于序列标注等任务，可以送入mask矩阵标记序列有效长度。**
   * **支持输入格式为list/np.ndarray/torch.tensor。**
   * 标签和预测可以同时为one-hot形式。
   * 若tabular为True，返回一个字符串形式的评估表格。

@@ -25,7 +25,7 @@ python 3.5+ & pytorch 1.2.0+
 
 <br>
 
-### [API Document](./docs.md)
+### [API Document](./docs.md) (In Chinese)
 
   * [Layer](./docs.md#Layer) - [layer.py](./dnnnlp/layer.py)
   * [Model](./docs.md#Model) -  [model.py](./dnnnlp/model.py)
@@ -40,6 +40,7 @@ python 3.5+ & pytorch 1.2.0+
 | ------------- | ----- | ----------- | -------------------------------------------------------------- |
 | n_gpu         | int   | 1           | The number of GPUs (0 means no GPU acceleration).              |
 | space_turbo   | bool  | True        | Accelerate with more GPU memories.                             |
+| rand_seed     | int   | 100         | Random seed setting.                                           |
 | data_shuffle  | bool  | Ture        | Disrupt data for training.                                     |
 | emb_type      | str   | None        | Embedding modes contain None, 'const' or 'variable'.           |
 | emb_dim       | int   | 300         | Embedding dimension (or feature dimension).                    |
@@ -128,7 +129,7 @@ train_y = np.array((1000, 50))
 train_mask = np.array((1000, 50))
 
 # initilize a model
-model = CNNCRFModel(args)
+model = RNNCRFModel(args)
 # initilize a labeler
 nn = SequenceLabeling(model, args, train_x, train_y, train_mask)
 # do cross validation
@@ -140,9 +141,10 @@ nn.cross_validation(fold=5)
 ### History
 
 **version 1.1**
-  * Add `CRFLayer`: packaging CRF for both training and testing
-  * Add `RNNCRFModel`: a integrated RNN-CRF sequence labeling model
+  * Add `CRFLayer`: packaging CRF for both training and testing.
+  * Add `RNNCRFModel`: a integrated RNN-CRF sequence labeling model.
   * Add `SequenceLabeling`: a sequence labeling execution module that inherits from Classify.
+  * Fix errors in judging whether a tensor is None.
 
 **version 1.0**
   * Rename project `dnn` to `dnnnlp`.

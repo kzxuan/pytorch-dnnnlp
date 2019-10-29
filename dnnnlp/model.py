@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Some common models for deep neural network.
-Last update: KzXuan, 2019.08.28
+Last update: KzXuan, 2019.10.29
 """
 import torch
 import numpy as np
@@ -161,8 +161,8 @@ class RNNCRFModel(nn.Module):
             tags [tensor]: label matrix (batch_size * max_seq_len)
 
         Returns:
-            loss_or_label [tensor]: neg log likelihood loss of the model
-                                   or the predict label pad with -1
+            loss [tensor]: predicting loss
+            pred [tensor]: predicting of the model (batch_size * max_seq_len)
         """
         inputs = self.emb_mat(inputs)
         assert inputs.dim() == 3, "Dimension error of 'inputs', check args.emb_type & emb_dim."
@@ -172,13 +172,17 @@ class RNNCRFModel(nn.Module):
         outputs = self.drop_out(inputs)
         outputs = self.rnn(outputs, mask, out_type='all')
         outputs = self.linear(outputs)
-        loss_or_label = self.crf(outputs, mask, tags)
 
-        return loss_or_label
+        if tags is not None:
+            loss = self.crf(outputs, mask, tags)
+            return loss
+        else:
+            pred = self.crf(outputs, mask)
+            return pred
 
 
 class TransformerModel(nn.Module):
-    def __init__(self, args, emb_matrix=None, n_layer=6, n_head=8):
+    def __init__(self, args, emb_matrix=None, n_layer=6, n_head=8, feed_dim=None):
         """Initilize transfomer model data and layer.
 
         Args:
@@ -186,6 +190,7 @@ class TransformerModel(nn.Module):
             emb_matrix [np.array]: word embedding matrix
             n_layer [int]: number of RNN layer in a hierarchy
             n_head [int]: number of attention heads
+            feed_dim [int]: hidden matrix dimension
         """
         super(TransformerModel, self).__init__()
 
@@ -195,7 +200,7 @@ class TransformerModel(nn.Module):
         self.drop_out = nn.Dropout(args.drop_prob)
 
         self.trans = nn.ModuleList(
-            [layer.TransformerLayer(args.emb_dim, n_head) for _  in range(n_layer)]
+            [layer.TransformerLayer(args.emb_dim, n_head, feed_dim) for _  in range(n_layer)]
         )
         self.predict = layer.SoftmaxLayer(args.emb_dim, args.n_class)
 

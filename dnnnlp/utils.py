@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Some utilities for deep neural network.
-Last update: KzXuan, 2019.08.28
+Last update: KzXuan, 2019.10.29
 """
 import sys
 import dnnnlp
@@ -151,8 +151,9 @@ def prfacc(y_true, y_pred, mask=None, one_hot=False, ndigits=4, tabular=False):
     """Evaluation of true label and prediction.
 
     Args:
-        y_true [np.array/list]: true label size of (n_sample, *) / (n_sample, *, n_class)
-        y_pred [np.array/list]: predict label size of (n_sample, *) / (n_sample, *, n_class)
+        y_true [np.array/list/torch.Tensor]: true label size of (n_sample, *) / (n_sample, *, n_class)
+        y_pred [np.array/list/torch.Tensor]: predict label size of (n_sample, *) / (n_sample, *, n_class)
+        mask [np.array/list/torch.Tensor]: mask matrix size of (n_sample, *)
         one_hot [bool]: True for (n_sample, *, n_class) input
         ndigits [int]: decimal number of float
         tabular [bool]: return a table

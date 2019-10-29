@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 classifyution functions for deep neural models.
-Last update: KzXuan, 2019.08.28
+Last update: KzXuan, 2019.10.29
 """
 import time
 import torch
@@ -16,17 +16,6 @@ from copy import deepcopy
 from . import utils, layer, model
 
 
-def set_seed(seed=100):
-    """Set random seed.
-
-    Args:
-        seed [int]: seed number
-    """
-    torch.manual_seed(100)
-    torch.cuda.manual_seed(100)
-    torch.cuda.manual_seed_all(100)
-
-
 def default_args():
     """Set default arguments.
 
@@ -36,6 +25,7 @@ def default_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_gpu", default=1, type=int, help="number of GPUs for running")
     parser.add_argument("--space_turbo", default=True, type=bool, help="use more space to fasten")
+    parser.add_argument("--rand_seed", default=100, type=int, help="random seed")
     parser.add_argument("--data_shuffle", default=True, type=bool, help="shuffle data")
     parser.add_argument("--emb_type", default=None, type=str, help="embedding type")
     parser.add_argument("--emb_dim", default=300, type=int, help="embedding dimension")
@@ -78,6 +68,7 @@ class exec(object):
         self.args = args
         self.n_gpu = args.n_gpu
         self.space_turbo = args.space_turbo
+        self.rand_seed = args.rand_seed
         self.data_shuffle = args.data_shuffle
         self.emb_type = args.emb_type
         self.emb_dim = args.emb_dim
@@ -90,8 +81,19 @@ class exec(object):
         self.display_step = args.display_step
         self.drop_prob = args.drop_prob
         self.eval_metric = args.eval_metric
+        self.set_seed(self.rand_seed)
         if self.eval_metric == 'micro':
             self.eval_metric = 'accuracy'
+
+    def set_seed(self, seed):
+        """Set random seed.
+
+        Args:
+            seed [int]: seed number
+        """
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
 
     def attributes_from_dict(self, args):
         """Set attributes' name and value from dict.
@@ -102,11 +104,12 @@ class exec(object):
         for name, value in args.items():
             setattr(self, name, value)
 
-    def create_data_loader(self, *data):
+    def create_data_loader(self, *data, shuffle=True):
         """Create data loader for pytorch.
 
         Args:
             data [tensor]: several tensors with the same shape[0]
+            shuffle [bool]: data shuffling
 
         Returns:
             loader [DataLoader]: torch data generator
@@ -114,7 +117,7 @@ class exec(object):
         dataset = Data.TensorDataset(*data)
         loader = Data.DataLoader(
             dataset=dataset,
-            shuffle=self.data_shuffle,
+            shuffle=shuffle,
             batch_size=self.batch_size
         )
         return loader
@@ -226,44 +229,45 @@ class Classify(exec):
         """
         self.model.eval()
 
-        preds, tys = torch.FloatTensor(), torch.LongTensor()
-        for _, (tx, ty, tm) in enumerate(test_loader):
-            if not self.space_turbo and self.n_gpu:
-                tx, ty, tm = tx.to(self.device_id), ty.to(self.device_id), tm.to(self.device_id)
-            pred = self.model(tx, tm, **model_params)
+        with torch.no_grad():
+            preds = torch.FloatTensor()
+            for tx, ty, tm in test_loader:
+                if not self.space_turbo and self.n_gpu:
+                    tx, ty, tm = tx.to(self.device_id), ty.to(self.device_id), tm.to(self.device_id)
+                pred = self.model(tx, tm, **model_params)
 
-            preds = torch.cat((preds, pred.cpu().data))
-            tys = torch.cat((tys, ty.cpu().data))
+                preds = torch.cat((preds, pred.cpu().data))
+            preds = preds.argmax(dim=-1)
 
-        preds = np.argmax(preds.data.numpy(), axis=-1)
-        evals = utils.prfacc(tys.data.numpy(), preds, one_hot=False)
+        evals = utils.prfacc(self.test_y, preds, one_hot=False)
         return evals
 
-    def train_test(self, device_id=0):
+    def train_test(self, device_id=0, **model_params):
         """Run training and testing.
 
         Args:
             device_id [int]: CPU device for -1, and GPU device for 0/1/...
+            model_params [parameter]: more parameters for model
 
         Returns:
             best_evals [dict]: the best evaluation metrics
         """
-        assert self.test_x is not None, ValueError("Test x or y or mask may not exist.")
+        assert self.test_x is not None, ValueError("Test data may not exist.")
         self._model_initilize(device_id)
 
         train_loader = self.create_data_loader(
-            self.train_x, self.train_y, self.train_mask
+            self.train_x, self.train_y, self.train_mask, shuffle=self.data_shuffle
         )
         test_loader = self.create_data_loader(
-            self.test_x, self.test_y, self.test_mask
+            self.test_x, self.test_y, self.test_mask, shuffle=False
         )
         self.model.load_state_dict(self.model_init)
 
         results = []
         ptable = utils.display_prfacc(self.eval_metric, verbose=2)
         for it in range(1, self.iter_times + 1):
-            loss = self._run_train(train_loader)
-            evals = self._run_test(test_loader)
+            loss = self._run_train(train_loader, **model_params)
+            evals = self._run_test(test_loader, **model_params)
 
             evals.update({'iter': it, 'loss': loss})
             if it % self.display_step == 0:
@@ -275,11 +279,12 @@ class Classify(exec):
         ptable.row(dict(best_evals, **{"iter": 'BEST'}))
         return best_evals
 
-    def train_itself(self, device_id=0):
+    def train_itself(self, device_id=0, **model_params):
         """Run testing with training data.
 
         Args:
             device_id [int]: CPU device for -1, and GPU device for 0/1/...
+            model_params [parameter]: more parameters for model
 
         Returns:
             best_evals [dict]: the best evaluation metrics
@@ -287,14 +292,15 @@ class Classify(exec):
         self.test_x = self.train_x
         self.test_y = self.train_y
         self.test_mask = self.train_mask
-        return self.train_test(device_id)
+        return self.train_test(device_id, **model_params)
 
-    def cross_validation(self, fold=10, device_id=0):
+    def cross_validation(self, fold=10, device_id=0, **model_params):
         """Run cross validation.
 
         Args:
             fold [int]: k fold control
             device_id [int]: CPU device for -1, and GPU device for 0/1/...
+            model_params [parameter]: more parameters for model
 
         Returns:
             best_evals [dict]: the best evaluation metrics
@@ -303,11 +309,12 @@ class Classify(exec):
         kf_avg = []
 
         for count, train, test in utils.mod_fold(self.train_x.shape[0], fold=fold):
+            self.test_x, self.test_y, self.test_mask = self.train_x[test], self.train_y[test], self.train_mask[test]
             train_loader = self.create_data_loader(
-                self.train_x[train], self.train_y[train], self.train_mask[train]
+                self.train_x[train], self.train_y[train], self.train_mask[train], shuffle=self.data_shuffle
             )
             test_loader = self.create_data_loader(
-                self.train_x[test], self.train_y[test], self.train_mask[test]
+                self.test_x, self.test_y, self.test_mask, shuffle=False
             )
 
             if dnnnlp.verbose.check(2):
@@ -317,8 +324,8 @@ class Classify(exec):
             results = []
             ptable = utils.display_prfacc(self.eval_metric, verbose=2)
             for it in range(1, self.iter_times + 1):
-                loss = self._run_train(train_loader)
-                evals = self._run_test(test_loader)
+                loss = self._run_train(train_loader, **model_params)
+                evals = self._run_test(test_loader, **model_params)
 
                 evals.update({'iter': it, 'loss': loss})
                 if it % self.display_step == 0:
@@ -396,17 +403,16 @@ class SequenceLabeling(Classify):
         """
         self.model.eval()
 
-        preds, tys, tmask = torch.LongTensor(), torch.LongTensor(), torch.IntTensor()
-        for _, (tx, ty, tm) in enumerate(test_loader):
-            if not self.space_turbo and self.n_gpu:
-                tx, ty, tm = tx.to(self.device_id), ty.to(self.device_id), tm.to(self.device_id)
-            pred = self.model(tx, tm, **model_params)
+        with torch.no_grad():
+            preds = torch.LongTensor()
+            for tx, ty, tm in test_loader:
+                if not self.space_turbo and self.n_gpu:
+                    tx, ty, tm = tx.to(self.device_id), ty.to(self.device_id), tm.to(self.device_id)
+                pred = self.model(tx, tm, **model_params)
 
-            preds = torch.cat((preds, pred.cpu().data))
-            tys = torch.cat((tys, ty.cpu().data))
-            tmask = torch.cat((tmask, tm.cpu().data))
+                preds = torch.cat((preds, pred.cpu().data))
 
-        evals = utils.prfacc(tys.data.numpy(), preds.data.numpy(), tmask.data.numpy(), one_hot=False)
+        evals = utils.prfacc(self.test_y, preds, self.test_mask, one_hot=False)
         return evals
 
 

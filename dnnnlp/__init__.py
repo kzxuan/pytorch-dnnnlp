@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Deep neural model
+PyTorch - Deep Neural Network - Natural Language Processing
 Ubuntu 16.04 & PyTorch 1.2
-Last update: KzXuan, 2019.08.28
+Last update: KzXuan, 2019.10.29
 """
 __name__ = "dnnnlp"
-__version__ = "1.1.0"
+__version__ = "1.1.4"
 
 
 # verbose for output portion

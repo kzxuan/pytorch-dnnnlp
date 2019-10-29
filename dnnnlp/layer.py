@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Some common layers for deep neural network.
-Last update: KzXuan, 2019.08.28
+Last update: KzXuan, 2019.10.29
 """
 import math
 import torch
@@ -300,6 +300,7 @@ class CRFLayer(nn.Module):
         """
         super(CRFLayer, self).__init__()
 
+        self.n_class = n_class
         self.crf = CRF(n_class, batch_first=True)
 
     def forward(self, inputs, mask=None, tags=None):
@@ -324,6 +325,7 @@ class CRFLayer(nn.Module):
 
         # training part
         if tags is not None:
+            assert tags.max() + 1 <= self.n_class, "Class error of 'tags'."
             outputs = self.crf(inputs, tags, mask, reduction=reduction)
 
             return outputs.neg()

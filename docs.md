@@ -322,6 +322,8 @@ args.batch_size = 32
 
     *Tip: device_id可以用来选择模型的运行硬件，-1表示使用CPU运行，0/1/...表示使用第几块GPU运行。*
 
+  * 使用dnnnlp.verbose.config()全局控制输出等级（0/1/2）。
+
 <br>
 
 > **SequenceLabeling(model, args, train_x, train_y, train_mask, test_x=None, test_y=None, test_mask=None, class_name=None, device_id=0)**
@@ -384,7 +386,7 @@ max_score = grid_search(nn, nn.train_test, args, params_search)
   * **对于序列标注等任务，可以送入mask矩阵标记序列有效长度。**
   * **支持输入格式为list/np.ndarray/torch.tensor。**
   * 标签和预测可以同时为one-hot形式。
-  * 若tabular为True，返回一个字符串形式的评估表格。
+  * 若tabular为True，返回一个字符串形式的评估表格，此时宏平均f1值并没有被调整。
   * 若tabular为False，返回一个包含所有评估指标的字典。
 
 ```python

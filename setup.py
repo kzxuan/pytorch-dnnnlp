@@ -19,14 +19,13 @@ setup(
     packages=find_packages(),
     install_requires=[
         "numpy",
-        "scikit-learn",
-        "torch >= 1.2.0"
+        "scikit-learn >= 0.21.0",
+        "torch >= 1.2.0",
+        "torchcrf >= 0.7.2"
         ],
     classifiers=[
         "License :: Free for non-commercial use",
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
